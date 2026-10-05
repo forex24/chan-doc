@@ -1,0 +1,300 @@
+{
+  "recorded_date": "2026-10-05",
+  "purpose": "F1 reference comparison and original-lesson adjudication; summary of an observed run, not an independent correctness oracle",
+  "decision": "Retain chan-l0 rules; do not force counts or endpoints to match the reference. The two examined first-stroke-contained segment cases and the equal-price distinct-fractal case support chan-l0. Full original-rule correctness is not established.",
+  "input": {
+    "path": "tests/fixtures/market_1m_4320.csv",
+    "sha256": "5c1985cc84a8bbc08d1418da581028c9aa4ea950312483b880095af38ff7bd06",
+    "bars": 4320,
+    "first_slot": "2024-10-01T00:00:00Z",
+    "last_slot": "2024-10-03T23:59:00Z",
+    "time_interpretation": "CSV naive interpreted UTC; process at slot+1 minute; raw indices zero-based",
+    "volume_each_bar": 1
+  },
+  "baselines": {
+    "ours": "b2581ebf583771956f991b1c774b817c92d6462d",
+    "reference": "758953cf87663140425c98d35e9ed0d7c0ceeaf8",
+    "ours_worktree_difference": "Pre-existing unstaged feature.rs style changes were present in the comparison; exact compiled source hashes are recorded below.",
+    "sources_unchanged_during_run": true,
+    "source_sha256": {
+      "ours": {
+        "src/f1/feature.rs": "a70f76c27fd920cbcbb30c5ce131e179e6e660dde5fcc657cd2e65e084e80daf",
+        "src/f1/fractal.rs": "a28908025d565aa239ced8dbb7b741c30f2e8edf890780923892a3739b12839d",
+        "src/f1/inclusion.rs": "acbfef71fbb52fa51971e4f5f8b692a0696ba66d963f4dcdf7b0ba384e4ac865",
+        "src/f1/mod.rs": "aba8811ae682b7166686f16b98ae4fdc2bdd2e4aafb8be5571d170284e6eb8cc",
+        "src/f1/morphology.rs": "867c0ed47fc55c9249f86cac23fff1485eb3c95cbe3be510a4cdf99096a4fc8b",
+        "src/f1/segment.rs": "698c430246519429d657998282b008a8b259abfebd765663cb30a290e8b8746c",
+        "src/f1/stroke.rs": "fc3f5f26e5a2df627ac65702692362f07cf9f89fded452373b2054f7e80e3551",
+        "src/input.rs": "b497d3d5de7a5dabc170129b121e7fb416cf73f33691997f81ac5cc611566e88",
+        "src/lib.rs": "fd24684eb949b6e657c70ee823e36c2894387b01d48f9909f3441a61f8c48864",
+        "src/lowest.rs": "d172543658bd92f87992574ad64a61e90086bb8fd7a554ad0351198fb9786771",
+        "src/quality.rs": "b8c572e9d25465e356d239f68bbadd814ace8523a9a0f6f97729b3f9e57da732"
+      },
+      "reference": {
+        "src/bar_generator.rs": "809e6be6e27e4df3523f31523a18119af51af55c0e968df64db4d4989ab3293d",
+        "src/bar_series.rs": "a5155cb99b502be561cb797344d4454c7cc95fed6382f8d115698b639968fe50",
+        "src/bi.rs": "78b4f11266dce24bb7a06719f8741130147fcc5db396058961dc6acca9abed60",
+        "src/bi_endpoint.rs": "18740f2aee8c1360fe42a404346a6c02f2b23facbb089978b0fd287741a299d1",
+        "src/bi_fields.rs": "d492fd8829883400c3380c8da2bbc1703533d7cdbb8cee77acb116a076e2ec57",
+        "src/bsp_calc_support.rs": "7adbf2d93c0dab33b903194185d32b9a68a4e440821562864e68a552ccea7e20",
+        "src/bsp_delta.rs": "ec3ec66c735ff93750896e3b18c2e8f2a6f701036ba48197ef7d77b1af12891f",
+        "src/bsp_events.rs": "c9ced5972880d89a48e607059207ac4f1d97a1667463c3305d648eddfbd017a3",
+        "src/bsp_features_model.rs": "8c9b9e30064e69c4db49d743afc58311a72dcd767389a6d5a15aa2fe62c38eb8",
+        "src/bsp_layers.rs": "d270e3dfeff186355da06760685c858f6dde3085e9b091223ceb63366482234d",
+        "src/bsp_model.rs": "72cbaa0ac628436b3b9243ea0e6924284cd2e52720cba0d88c008d0be12fb123",
+        "src/bsp_rules.rs": "dca9097145a238b8ce2b3c8ec153f5c324e080ccf618587c9633f18ff4ebf4ca",
+        "src/bsp_stage.rs": "44f053fee8176eb53e93dad66a0c3d1aff3f46c35cac9e69004ff9dc70772040",
+        "src/bsp_trigger.rs": "c375b7cb77424fe4ce198d205c7eec31a2ec2fed0e337349cceda6e35ae007fc",
+        "src/config.rs": "0cefefc142736ac059df539a6e67722ac1dd1414dd4a59cf1d688e70bee8fb2b",
+        "src/config_codec.rs": "042b54800915b1358b428b46534f53bc69ad319fd5384455401ea0f8d996d40d",
+        "src/engine.rs": "a2745bbe3b8013417233a4bcaff96a46a4fa10bc6f81191bc71b121a0b190838",
+        "src/error.rs": "9899fc673b58702742f7fdf9a1f636a531e7a2bf1d7a40485edc3b48937e7056",
+        "src/impact.rs": "d5a80e50b64c3ea43e34daa8ad8c7f0f23e84efce8777176cd6a0c8bf886cf88",
+        "src/kline.rs": "cbe9e43fe2765df42bd26188ce3b4f3e39e764cb19575e8bad930b7d205acd81",
+        "src/lib.rs": "006837fe3701dca4881d1ac1bc1dd3cf9557cf5c741801bf064bca606209c02b",
+        "src/metrics.rs": "c5ab43289591c575ac852268ae982f3e48e79aeef353430d53c7b4d0b5d38593",
+        "src/model_store.rs": "e8a1520d405f66a73486abb15431c5abacbceb82de72b41a3df184153578b697",
+        "src/multi.rs": "e47bcc8d3471b61343fb4525a5252241653f6410cc140587c1f85488a1b16758",
+        "src/multi_aligner.rs": "e10d56be8c2ebd8953e01afb83ae605163d4907f985dd3e0faf4f57acf2f5ad7",
+        "src/multi_shared.rs": "292abc06967d4f64d0ffd75ace5c284c5724e732c5b768df69cd944d3f61cd3b",
+        "src/multi_warmup.rs": "d6d89560be894bd2e4e3212e5555364c4c1c86c137466d8b5f6081dfb308c9ca",
+        "src/seg_eigen.rs": "2997784933e18f41bb7a0e9040cecb694f1f5547ab6bef45ba651f15c25d302d",
+        "src/seg_line_view.rs": "1165752b3e9611937c088377d116066d70d09c69fea7d4d6294fc5dd5bc98b32",
+        "src/segment_calculator.rs": "82976415f481e333d5718af5c657c73d58a8a1f83b6b4086c4552070cf65dfd8",
+        "src/segment_stage.rs": "d7326d2d5a061c8cf75307e6380c7a8d1763a81d4f190956a99caf1530ccdb48",
+        "src/snapshot.rs": "b3f4cbfe425087230c575f7dc8404caede4ec9f14e11661aec32955e1df76530",
+        "src/snapshot_types.rs": "7b7d580d7887667182766581affba16da2c10fb2efc211410a4bad66da16e737",
+        "src/stages.rs": "aa4e6bf2ad2e4fb3ce0dda8e81b29d21c04d87ca3a96608c8433249d1c6e2b42",
+        "src/timeline.rs": "da63e140c513aa4e506e0b370eeacf2299ddf00b13b0c45ea9e90cbf8aef687c",
+        "src/types.rs": "dabdba67f85eaa016aacc6d56359c465e1cb0f914449eed4054a4e5f2ceb4f7a",
+        "src/view.rs": "c38c75a686616dee4dd1a695fd7c56b946214f46f73ab5fb9d13c93fc72da83a",
+        "src/zs_calculator.rs": "d190736e19c6f62d8366e8b41af76c2032797a9f1dde495c65597ac5a0089d81",
+        "src/zs_stage.rs": "89d2be3c19468e0447e288fb513f42562a2fc57b9b898662ae4fd1611da8281b",
+        "src/zs_utils.rs": "d8a28533f9b3adaa7c5c7120e2e428631e7e115117fa331f9fddd7d92ad7507f"
+      }
+    }
+  },
+  "configuration": {
+    "ours_boundary": {
+      "root_point": 10,
+      "initial_direction": "Upward",
+      "known_at": "2024-10-01T00:10:00Z"
+    },
+    "reference_features": "default-features=false; allocator only; per-Bar full pipeline trigger_step=true",
+    "reference_yaml": "base_freq: '1m'\nglobal_config:\n  trigger_step: true\n  skip_step: 0\n  kl_data_check: true\n  max_kl_misalign_cnt: 2\n  max_kl_inconsistent_cnt: 5\n  auto_skip_illegal_sub_lv: false\n  print_warning: true\n  print_err_time: true\nbi_config:\n  bi_algo: Normal\n  is_strict: true\n  bi_fx_check: Strict\n  gap_as_kl: false\n  bi_end_is_peak: true\n  bi_allow_sub_peak: true\nseg_config:\n  seg_algo: Chan\n  left_seg_method: Peak\nzs_config:\n  need_combine: true\n  zs_combine_mode: ZS\n  one_bi_zs: false\n  zs_algo: Normal\nbs_point_config:\n  b_conf:\n    divergence_rate: inf\n    min_zs_cnt: 1\n    bsp1_only_multibi_zs: true\n    max_bs2_rate: 0.9999\n    macd_algo: Peak\n    bs1_peak: true\n    target_types:\n    - T1\n    - T1P\n    - T2\n    - T2S\n    - T3A\n    - T3B\n    bsp2_follow_1: true\n    bsp3_follow_1: true\n    bsp3_peak: false\n    bsp2s_follow_2: false\n    max_bsp2s_lv: null\n    strict_bsp3: false\n    bsp3a_max_zs_cnt: 1\n  s_conf:\n    divergence_rate: inf\n    min_zs_cnt: 1\n    bsp1_only_multibi_zs: true\n    max_bs2_rate: 0.9999\n    macd_algo: Peak\n    bs1_peak: true\n    target_types:\n    - T1\n    - T1P\n    - T2\n    - T2S\n    - T3A\n    - T3B\n    bsp2_follow_1: true\n    bsp3_follow_1: true\n    bsp3_peak: false\n    bsp2s_follow_2: false\n    max_bsp2s_lv: null\n    strict_bsp3: false\n    bsp3a_max_zs_cnt: 1\nseg_bs_point_config:\n  b_conf:\n    divergence_rate: inf\n    min_zs_cnt: 1\n    bsp1_only_multibi_zs: false\n    max_bs2_rate: 0.9999\n    macd_algo: Slope\n    bs1_peak: true\n    target_types:\n    - T1\n    - T1P\n    - T2\n    - T2S\n    - T3A\n    - T3B\n    bsp2_follow_1: true\n    bsp3_follow_1: true\n    bsp3_peak: false\n    bsp2s_follow_2: false\n    max_bsp2s_lv: null\n    strict_bsp3: false\n    bsp3a_max_zs_cnt: 1\n  s_conf:\n    divergence_rate: inf\n    min_zs_cnt: 1\n    bsp1_only_multibi_zs: false\n    max_bs2_rate: 0.9999\n    macd_algo: Slope\n    bs1_peak: true\n    target_types:\n    - T1\n    - T1P\n    - T2\n    - T2S\n    - T3A\n    - T3B\n    bsp2_follow_1: true\n    bsp3_follow_1: true\n    bsp3_peak: false\n    bsp2s_follow_2: false\n    max_bsp2s_lv: null\n    strict_bsp3: false\n    bsp3a_max_zs_cnt: 1\nindicators:\n  macd:\n    fast: 12\n    slow: 26\n    signal: 9\n",
+    "path": "quality gate -> advance_pipeline; reference push_bar per closed Bar"
+  },
+  "observed_run": {
+    "command": [
+      "cargo",
+      "run",
+      "--offline",
+      "--locked",
+      "--release",
+      "--manifest-path",
+      "/Users/gxj/core/chan-doc/.work/f1-comparison/Cargo.toml",
+      "--",
+      "/Users/gxj/core/chan-doc/rust-l0/tests/fixtures/market_1m_4320.csv",
+      "/Users/gxj/core/chan-doc/.work/f1-comparison/output"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 13.454161666042637,
+    "harness_sha256": {
+      "Cargo.toml": "d5a97e6a4c80267da56509051a234327b9d2cfcc316a8de9ebac28c13e3ac9f7",
+      "Cargo.lock": "7bae1312b75cc87e61283dd7d607bfed83ddffb9cb5c294cbe61b34b54cd71da",
+      "src/main.rs": "6580df8b62062bdcf8f1a5905469d125a59371c12c9a939174b6281c7d7b6951",
+      "analyze.py": "3a5af290191156935da49061a39e7ebd52c8f0861c69f096ff0b6c09cbaa477d"
+    },
+    "artifact_note": "The diagnostic harness and full per-Bar logs remain local artifacts under .work/f1-comparison and are not included in this documentation commit. This file archives the comparison summary and source identities."
+  },
+  "matching": {
+    "geometry": "Combined-K center indices, endpoint prices and direction; raw endpoint times compared separately",
+    "confirmation_delay": "Our first publication Bar minus reference first is_sure Bar for the same final geometry; minutes in this one-minute input",
+    "post_bar_geometry": "Fractal comparison includes our current forming fractal; confirmation status is compared separately."
+  },
+  "layers": {
+    "combined": {
+      "ours_total": 3153,
+      "reference_total": 3153,
+      "delay_statistics": {
+        "n": 0
+      },
+      "same_geometry_raw_time_difference_count": 0,
+      "same_geometry_range_difference_count": 0,
+      "same_geometry_count": 3153
+    },
+    "fractals": {
+      "ours_total": 1428,
+      "reference_total": 1428,
+      "ours_sure": 1428,
+      "reference_sure": 1428,
+      "same_geometry_sure": 1428,
+      "delay_statistics": {
+        "n": 1428,
+        "min_minutes": 1,
+        "median_minutes": 1,
+        "p90_minutes": 2,
+        "max_minutes": 5
+      },
+      "ours_only_sure_count": 0,
+      "reference_only_sure_count": 0,
+      "same_geometry_raw_time_difference_count": 0,
+      "same_geometry_range_difference_count": 0
+    },
+    "strokes": {
+      "ours_total": 221,
+      "reference_total": 223,
+      "ours_sure": 220,
+      "reference_sure": 222,
+      "same_geometry_sure": 216,
+      "delay_statistics": {
+        "n": 216,
+        "min_minutes": 5,
+        "median_minutes": 9.5,
+        "p90_minutes": 19,
+        "max_minutes": 33
+      },
+      "ours_only_sure_count": 4,
+      "reference_only_sure_count": 6,
+      "same_geometry_raw_time_difference_count": 25,
+      "same_geometry_range_difference_count": 0
+    },
+    "segments": {
+      "ours_total": 25,
+      "reference_total": 31,
+      "ours_sure": 25,
+      "reference_sure": 28,
+      "same_geometry_sure": 20,
+      "delay_statistics": {
+        "n": 20,
+        "min_minutes": -244,
+        "median_minutes": 13,
+        "p90_minutes": 31,
+        "max_minutes": 47
+      },
+      "ours_only_sure_count": 5,
+      "reference_only_sure_count": 8,
+      "same_geometry_raw_time_difference_count": 0,
+      "same_geometry_range_difference_count": 0
+    }
+  },
+  "integrity": {
+    "status": "passed",
+    "input_bars": 4320,
+    "event_rows": 15623,
+    "delta_replay_matches_final": true,
+    "our_published_rows_never_mutate": true,
+    "combined_and_fractal_geometry_equal_every_bar": true,
+    "reference_sure_stroke_mutations": {
+      "geometry_and_status": 292
+    },
+    "same_geometry_strokes_with_raw_time_difference": 25,
+    "unique_raw_endpoint_time_differences": 13,
+    "source_hashes_unchanged": true
+  },
+  "actual_break_cases": [
+    {
+      "split": 135,
+      "center": 137,
+      "challenge_index": 139,
+      "previous": {
+        "low": 2364.26,
+        "high": 2383.25
+      },
+      "first": {
+        "low": 2360,
+        "high": 2392.99
+      },
+      "third": {
+        "low": 2363.89,
+        "high": 2377.99
+      },
+      "center_interval": {
+        "low": 2363.89,
+        "high": 2377.99
+      },
+      "challenge": {
+        "low": 2366.38,
+        "high": 2383.4
+      },
+      "checks": {
+        "first_three_overlap": true,
+        "center_break": true,
+        "first_directional_resolution": false,
+        "initial_three_direction_resolved": false
+      },
+      "all": false
+    },
+    {
+      "split": 179,
+      "center": 181,
+      "challenge_index": 183,
+      "previous": {
+        "low": 2347.81,
+        "high": 2357.71
+      },
+      "first": {
+        "low": 2336.94,
+        "high": 2357.8
+      },
+      "third": {
+        "low": 2345.04,
+        "high": 2353.6
+      },
+      "center_interval": {
+        "low": 2345.04,
+        "high": 2353.6
+      },
+      "challenge": {
+        "low": 2347.54,
+        "high": 2357.53
+      },
+      "checks": {
+        "first_three_overlap": true,
+        "center_break": true,
+        "first_directional_resolution": false,
+        "initial_three_direction_resolved": false
+      },
+      "all": false
+    }
+  ],
+  "segment_chain_example": {
+    "start": "2024-10-02T16:07:00Z",
+    "end": "2024-10-03T04:46:00Z",
+    "ours_prices": [
+      2478.89,
+      2352,
+      2403.38
+    ],
+    "reference_prices": [
+      2478.89,
+      2360,
+      2383.4,
+      2353.5,
+      2403.38
+    ],
+    "cause": "With the third reverse stroke contained in the first, later upward strokes did not break the first upward endpoint before a new low invalidated the boundary; lesson 71 supports continuation."
+  },
+  "equal_price_distinct_fractals": {
+    "price": 2346.6,
+    "ours_center": 3049,
+    "reference_center": 3055,
+    "ours_time": "2024-10-03T21:33:00Z",
+    "reference_time": "2024-10-03T21:40:00Z",
+    "basis": "Lesson 77 steps two and three: retain equal same-kind fractals, then connect the earliest to the valid opposite fractal."
+  },
+  "original_sources": {
+    "first_stroke_containment": "原文/chzhshch-108-plus/108/0639-486e105c01000c8i-071.md:14-16",
+    "equal_same_kind_fractals": "原文/chzhshch-108-plus/108/0675-486e105c01000cih-077.md:42-45",
+    "second_sequence_no_recursion": "原文/chzhshch-108-plus/108/0614-486e105c01000c16-067.md:46-48",
+    "second_sequence_ordinary_inclusion": "原文/chzhshch-108-plus/108/0677-486e105c01000cio-078.md:62"
+  },
+  "boundaries": [
+    "The input left boundary is truncated and differs between implementations; initial counts alone cannot establish accuracy.",
+    "Our right-neighbor freeze and strict three-K stroke profile are engineering choices, not claimed as the sole verbatim original specification.",
+    "Equal raw-Bar time selection inside one combined K is separate from equal distinct-fractal selection.",
+    "Reference is_sure can describe a mutable established tail; mutation counts are not error counts.",
+    "The second-sequence rule comparison is a source-code finding and does not explain every observed delay.",
+    "No annual-market parity, new formal proof, full original-rule acceptance or F2 validation was performed."
+  ]
+}
