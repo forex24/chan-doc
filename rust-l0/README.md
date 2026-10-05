@@ -34,6 +34,8 @@ cargo build --release --manifest-path rust-l0/Cargo.toml
 
 `CompleteBoundary` 是沿用原实现的调用前提。**首条输入不是天然完整市场起点**，本次抽取没有新增未知左边界恢复算法，也不把该参数升级为 F2 的完成授权。`slot`、`timeframe`、`known_at` 的单位和市场流必须由调用方一致提供；价格缩放由调用方固定，内部不使用浮点替代。
 
+这不表示 F2 的未知边界规则尚未确定：**R4 已批准未知整体起点下的局部识别、持续推进和发布**，同时禁止未获证整体的普通完成与升层。后续 Rust F2 应按 [规则总表 §2.5](../缠论业务规则总表.md#25-r4未知左边界下的局部能力已批准) 接通这些能力，不以旧 Dafny 验收未结束为阻塞。本 L0 副本尚未实现 R4，也不因该规则改变 F1 前提。
+
 原 L0 输出沿用通用 `MovementKey` 形状。因此类型中仍有 `level_ordinal` 和 `ConsolidationMovement` / `TrendMovement` 枚举标签，`input` 中仍有边界描述类型。它们仅是原有公共数据定义；本管线只产生 `level_ordinal = 0`、`FrozenLowestSegment`，不存在 L1+ 执行器。
 
 ## Verus 剥离方式
