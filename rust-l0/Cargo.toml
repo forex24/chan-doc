@@ -1,0 +1,9 @@
+[package]
+name = "chan-l0"
+version = "0.1.0"
+edition = "2024"
+description = "Standalone Bar-to-L0 extraction of the existing Chan Rust implementation"
+
+[dependencies]
+num-bigint = "=0.4.6"
+num-traits = "=0.2.19"

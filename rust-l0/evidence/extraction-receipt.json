@@ -1,0 +1,357 @@
+{
+  "created_on": "2026-10-05",
+  "source_root": "/Users/gxj/.codex/worktrees/f2-combination-closure/dafny/f2-authority/verus-core",
+  "source_head": "56691eb6435d595fbf637a4133843caeb6d37930",
+  "scope": "L0 only; original dirty working-tree files hashed individually",
+  "source_unchanged_during_extraction": true,
+  "erasure": {
+    "package": "verus_builtin_macros",
+    "version": "0.0.0-2026-09-20-0158",
+    "method": "official syntax::rewrite_items(input, EraseGhost::EraseAll, true); save executable token stream; rustfmt",
+    "manual_removals": [
+      "vstd imports",
+      "number::ExBigInt",
+      "number::Int View impl",
+      "number::Nat View impl",
+      "number::verified_add_sub",
+      "number::verified_nat_arithmetic"
+    ],
+    "business_changes": []
+  },
+  "source_files": [
+    {
+      "path": "src/number.rs",
+      "sha256": "3d875ab06a6704c324cad790ccca313b4fa61fdd2a919694b4ed99b5eb051fcc"
+    },
+    {
+      "path": "src/input.rs",
+      "sha256": "34de1ee77b63c464664d9f9d6feb02442b8fe57001f1c8688bde5a7e1c635559"
+    },
+    {
+      "path": "src/quality.rs",
+      "sha256": "2d76afef9c14dcd0d64c521ba5867fccbf7739b09e8bfad1f603d308f91c9f25"
+    },
+    {
+      "path": "src/lowest.rs",
+      "sha256": "67923488ba6ff4d910f653028386d4e4c74ed3d2b128d667f49648a7aeb0bdc7"
+    },
+    {
+      "path": "src/f1/mod.rs",
+      "sha256": "20f783226188f10dc2e624b7c74ab5f2d15828d36d36b4a4eedb98c549098701"
+    },
+    {
+      "path": "src/f1/inclusion.rs",
+      "sha256": "fd51403ac0226d8b7e479737da3e0099603b98d425c806cbcadd0195812c4e71"
+    },
+    {
+      "path": "src/f1/fractal.rs",
+      "sha256": "52624c1fe9f86fd1cfb510d92cce4657c97d1d00c654ab7b087a585e177d006d"
+    },
+    {
+      "path": "src/f1/stroke.rs",
+      "sha256": "b516731cbd26649802a2249fa5b233899f037661d560e710aabe1a6e1e6e268b"
+    },
+    {
+      "path": "src/f1/morphology.rs",
+      "sha256": "c1ec6e5efaf85ae30c7ee6f4af368635459c91a218ccd1f1d3c34c9791c47e39"
+    },
+    {
+      "path": "src/f1/feature.rs",
+      "sha256": "222f36cf2055778d9f02320f9bef128a9c37d496c07142f5affc30e25c3c2d7b"
+    },
+    {
+      "path": "src/f1/segment.rs",
+      "sha256": "95dca3ec27af4602500e701316e7b2b0735fa04aceb97d03d96a402613a73033"
+    },
+    {
+      "path": "tests/f1_inclusion_fractal.rs",
+      "sha256": "e74fe1b465e66d4318417d9c29f97c4d7bc7bd7d2486949c565479b97c77fdf4"
+    },
+    {
+      "path": "tests/f1_morphology.rs",
+      "sha256": "0140518d9902d73274b3f37fb11c3432b5ba589a33bcf25087fd99617438522e"
+    },
+    {
+      "path": "tests/f1_segment.rs",
+      "sha256": "6d7ce3b06ef74e446a697851eca9b30b1c9ced92089e5dce767f24aa65e70bf7"
+    },
+    {
+      "path": "tests/number.rs",
+      "sha256": "c70f013c516466a36d608c1a927c7b5e8a4f4263be5d4906213e3580e7fb4182"
+    },
+    {
+      "path": "tests/quality.rs",
+      "sha256": "9d06015e0249c741ff83870ecd29eb80944a659c56f8d9d8a46635edd1d4222b"
+    },
+    {
+      "path": "tests/quality_oracle.dfy",
+      "sha256": "651ba59cd627c6585397fe73e062b5c7cd8a25c893e6f4f4e601dccdbfe91cd3"
+    },
+    {
+      "path": "tests/f1_oracle.dfy",
+      "sha256": "e5b672e65eb9597963afb1a15044cd9b14a4fe0bd3bf5816327108b2f13c63c3"
+    },
+    {
+      "path": "tests/f1_morphology_oracle.dfy",
+      "sha256": "8033c598cc7ae65a037d0c9afd2cd8609ec6fe4ecfff49789b04c795a78cf0d6"
+    },
+    {
+      "path": "tests/f1_segment_oracle.dfy",
+      "sha256": "b22f56fb87e4144363c9a8afc6dabffe1f85c2c4e79cf46c93efb59de6ad253b"
+    }
+  ],
+  "oracle_transitive_source_files": [
+    {
+      "path": "src/F1FeatureSourceAppendProofs.dfy",
+      "sha256": "3b95230f404146080f7d556ef4bd0238e782dbce0dc8c48dfc82898e7f9867be"
+    },
+    {
+      "path": "src/F1FractalStroke.dfy",
+      "sha256": "fd60981f2b10f9779c2c9e22c5feb97a24ce0b8d479a2f3f3e4e3b81cb8579de"
+    },
+    {
+      "path": "src/F1Inclusion.dfy",
+      "sha256": "8171febb428a5d6a613aaab999f6f2a1db625e1f317a3707ce22fb8ef66ad771"
+    },
+    {
+      "path": "src/F1IncrementalMorphologyState.dfy",
+      "sha256": "d255689d6441123b6de5a8ce0346b8df271f6de6baade759ce934884d6b4acb5"
+    },
+    {
+      "path": "src/F1IncrementalSegmentExecution.dfy",
+      "sha256": "bada9e618d30127a9d9091874033cb2eaa9b7657fd86887fe055897525ba1354"
+    },
+    {
+      "path": "src/F1MorphologyExecution.dfy",
+      "sha256": "32659aa96b822c67a76a608881ab4e1f8d5cd89881051bb14a952401b39e60a5"
+    },
+    {
+      "path": "src/F1PrimarySplitExecution.dfy",
+      "sha256": "1184c63e04060c3e289200f8bcbc10fffbc88a49c720220f701bf2340663d9f5"
+    },
+    {
+      "path": "src/F1Segment.dfy",
+      "sha256": "b7077a430cd083f783e6a325949fd39832c127d75e90e6f9bf90c13086af2bf3"
+    },
+    {
+      "path": "src/F1SegmentExecutionContracts.dfy",
+      "sha256": "9a087f2ad5eb8aea4e307ed464a51663d049a765ada7298e3f129e111d86a7f8"
+    },
+    {
+      "path": "src/F1SegmentExecutionPendingFacts.dfy",
+      "sha256": "9c3e9046af3718a821c7ea3c1a1fb1db24411942c213e98c5ae570f4260e410b"
+    },
+    {
+      "path": "src/F1SegmentExecutionProvenance.dfy",
+      "sha256": "2642841ff2898b54f782899b76104c08b313944c29a1f6475bade5fd637b46a5"
+    },
+    {
+      "path": "src/F1SegmentRange.dfy",
+      "sha256": "4ad02786d20b9b694a16709bc047c118045856243a32194577dbbe0cadbf1309"
+    },
+    {
+      "path": "src/F1StrokeExecution.dfy",
+      "sha256": "9a2bfdc3d95eee38937885b4031b0967358e673c8df26df85e78311e77b06a89"
+    },
+    {
+      "path": "src/F1StrokeExecutionProofs.dfy",
+      "sha256": "17ca755780a177468243d657fbf49f123141bada52888c2827e5718ca7fb291a"
+    },
+    {
+      "path": "src/F1StrokeLedgerEquivalenceProofs.dfy",
+      "sha256": "62b3f84f5e923af1ba88c94566cfdb138ced2ca414384b13c4640bd43f888559"
+    },
+    {
+      "path": "src/F2BarQualityGate.dfy",
+      "sha256": "5eef85a61a158fe7c09cf8832167c517f535cb33913fbf7bc9d1a3a0b5ece5de"
+    },
+    {
+      "path": "src/F2CoreIncrementalLedger.dfy",
+      "sha256": "dfa97d13f86fa630035f64e703c5893b96f4f7df8ce4fad72524f67c8774a16f"
+    },
+    {
+      "path": "src/F2EndToEndPipelineMapping.dfy",
+      "sha256": "cc3a129eb2094f15d5982f1d5930181e880e12158e28c7eeb33635835caa177c"
+    },
+    {
+      "path": "src/F2Facts.dfy",
+      "sha256": "197ccc53aaa32425bf9724b54f4a1c7edf5b44f4f87aa17a02c065fcc0cb60bc"
+    },
+    {
+      "path": "src/F2PendingPublicationTypes.dfy",
+      "sha256": "b34a8231fed5d79a2b0b2819a0625758b37fa71d3a81c0a490be2d0b10ea251d"
+    },
+    {
+      "path": "verus-core/tests/f1_morphology_oracle.dfy",
+      "sha256": "8033c598cc7ae65a037d0c9afd2cd8609ec6fe4ecfff49789b04c795a78cf0d6"
+    },
+    {
+      "path": "verus-core/tests/f1_oracle.dfy",
+      "sha256": "e5b672e65eb9597963afb1a15044cd9b14a4fe0bd3bf5816327108b2f13c63c3"
+    },
+    {
+      "path": "verus-core/tests/f1_segment_oracle.dfy",
+      "sha256": "b22f56fb87e4144363c9a8afc6dabffe1f85c2c4e79cf46c93efb59de6ad253b"
+    },
+    {
+      "path": "verus-core/tests/quality_oracle.dfy",
+      "sha256": "651ba59cd627c6585397fe73e062b5c7cd8a25c893e6f4f4e601dccdbfe91cd3"
+    }
+  ],
+  "delivered_files": [
+    {
+      "path": "src/f1/feature.rs",
+      "sha256": "148a4b81cf28bce6d6578798b28506a9fda44e7d604aa3c6fc0a6361c531fe51"
+    },
+    {
+      "path": "src/f1/fractal.rs",
+      "sha256": "a158bd4080e3cc5db3ca7e1156cc2ffeb26ead6258c2a49d439f4ea029e924e4"
+    },
+    {
+      "path": "src/f1/inclusion.rs",
+      "sha256": "abef9684f0a6cfd2bdb3bb0652d11001bdbbc9eceeff6282a19584e3fca59dd5"
+    },
+    {
+      "path": "src/f1/mod.rs",
+      "sha256": "e23b681b7e52152e0759b0de1660d3d4a27d5ac93167c48d27894b97e6c97c53"
+    },
+    {
+      "path": "src/f1/morphology.rs",
+      "sha256": "9881d1542ff2b89f6b5acc2803b5f31e896a7604252a951716b49d9703182df4"
+    },
+    {
+      "path": "src/f1/segment.rs",
+      "sha256": "b29f5d346acbaabb92d37ce476cdb969abd6baface97dc5ac271c67203fe75e4"
+    },
+    {
+      "path": "src/f1/stroke.rs",
+      "sha256": "2cc6fa9b52c4e7d7efb216299ef10248823a665c3559963a8f08efba56908c3b"
+    },
+    {
+      "path": "src/input.rs",
+      "sha256": "fe7619109c40542628def9fb109ee13ddfcb35d7bfaa8388cf6615b60f9a3279"
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "282d73a2ff58ebd62549f7b486a7df4e2ac473cbee91601a3451a3fd90a74c48"
+    },
+    {
+      "path": "src/lowest.rs",
+      "sha256": "670f46de7409ca50f494a60e61eef0c081199a5335d90aa1f330d8fb4c149205"
+    },
+    {
+      "path": "src/number.rs",
+      "sha256": "cc8c9dc98f7cbc8d848f84c5cfa32c566997ab1b37646c2caf870462ee95f78b"
+    },
+    {
+      "path": "src/quality.rs",
+      "sha256": "a1019b3b49141a69a96fb415e3caad436a28e469ad0044017e0ea38aa84b8467"
+    },
+    {
+      "path": "tests/f1_inclusion_fractal.rs",
+      "sha256": "7293955142fae1934360e82dcf1a6e355f22a38bf712b13405b600dfe07c6afc"
+    },
+    {
+      "path": "tests/f1_morphology.rs",
+      "sha256": "448a448d8e93fcf7ca1c0ccfc9b17fa74446e5d007cdd9653b473f9eea9935f9"
+    },
+    {
+      "path": "tests/f1_segment.rs",
+      "sha256": "29b13be2164dcde9499fdcc638749c4b278d766ba4829d1bf145c8a8dfd5c136"
+    },
+    {
+      "path": "tests/fixtures/f1_inclusion_fractal.txt",
+      "sha256": "410032bde62b6086881079944ac4238e36f85160a6b2f716df4bfd2b2e85a558"
+    },
+    {
+      "path": "tests/fixtures/f1_morphology.txt",
+      "sha256": "2ac1fad6c1a436a04bd96c2714f857b3f0d9727a833a2760fcc473a13000eaac"
+    },
+    {
+      "path": "tests/fixtures/f1_segment.txt",
+      "sha256": "2a8509f1fbabdc5d874df5e761924d49ee049050270d1656e4f2b8aacad16863"
+    },
+    {
+      "path": "tests/fixtures/quality.txt",
+      "sha256": "61c46fef2ca09ce95aa453c09a96eb21f38f758af803727b12828d88e7cb8c08"
+    },
+    {
+      "path": "tests/number.rs",
+      "sha256": "f4ef2b0e598fc2cd9caf507720bcad4cd6dce897b9e0ec2196b75e48737478e8"
+    },
+    {
+      "path": "tests/quality.rs",
+      "sha256": "30eecd71d67483523116acc032e5b38a247bef45704ee75235ecaf74eb4d94ea"
+    }
+  ],
+  "validation": {
+    "cargo_test": {
+      "exit_code": 0,
+      "passed": 14,
+      "failed": 0,
+      "log": "cargo-test.log",
+      "command": "cargo test --offline --manifest-path rust-l0/Cargo.toml"
+    },
+    "cargo_build_release": {
+      "exit_code": 0,
+      "log": "cargo-build-release.log",
+      "command": "cargo build --release --offline --manifest-path rust-l0/Cargo.toml"
+    },
+    "cargo_fmt_check": {
+      "exit_code": 0
+    },
+    "oracle_runs": [
+      {
+        "name": "quality",
+        "command": [
+          "dafny",
+          "run",
+          "--no-verify",
+          "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/quality/oracle.dfy"
+        ],
+        "exit_code": 0,
+        "seconds": 6.753645625023637
+      },
+      {
+        "name": "f1_inclusion_fractal",
+        "error": "source not found",
+        "resolved_by": "f1_inclusion_fractal-oracle-receipt.json",
+        "final_exit_code": 0
+      },
+      {
+        "name": "f1_morphology",
+        "command": [
+          "dafny",
+          "run",
+          "--no-verify",
+          "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/f1_morphology/oracle.dfy"
+        ],
+        "exit_code": 0,
+        "seconds": 3.251727833005134
+      },
+      {
+        "name": "f1_segment",
+        "command": [
+          "dafny",
+          "run",
+          "--no-verify",
+          "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/f1_segment/oracle.dfy"
+        ],
+        "exit_code": 0,
+        "seconds": 4.8226216660114005
+      }
+    ],
+    "frozen_observations": {
+      "quality": 27,
+      "inclusion_fractal": 26,
+      "morphology": 62,
+      "segment": 134,
+      "total": 249
+    },
+    "not_verified": [
+      "formal proof",
+      "annual market replay",
+      "business-rule completeness"
+    ]
+  }
+}

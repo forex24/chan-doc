@@ -1,0 +1,10 @@
+{
+  "command": [
+    "dafny",
+    "run",
+    "--no-verify",
+    "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/f1_inclusion_fractal/oracle.dfy"
+  ],
+  "exit_code": 0,
+  "seconds": 2.826446333026979
+}

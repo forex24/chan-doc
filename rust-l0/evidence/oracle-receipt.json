@@ -1,0 +1,39 @@
+[
+  {
+    "name": "quality",
+    "command": [
+      "dafny",
+      "run",
+      "--no-verify",
+      "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/quality/oracle.dfy"
+    ],
+    "exit_code": 0,
+    "seconds": 6.753645625023637
+  },
+  {
+    "name": "f1_inclusion_fractal",
+    "error": "source not found"
+  },
+  {
+    "name": "f1_morphology",
+    "command": [
+      "dafny",
+      "run",
+      "--no-verify",
+      "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/f1_morphology/oracle.dfy"
+    ],
+    "exit_code": 0,
+    "seconds": 3.251727833005134
+  },
+  {
+    "name": "f1_segment",
+    "command": [
+      "dafny",
+      "run",
+      "--no-verify",
+      "/Users/gxj/core/chan-doc/.work/l0-extraction/oracles/f1_segment/oracle.dfy"
+    ],
+    "exit_code": 0,
+    "seconds": 4.8226216660114005
+  }
+]
