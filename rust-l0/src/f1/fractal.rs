@@ -4,7 +4,7 @@ use crate::f1::inclusion::{absorb, combined_absorbs, fresh_combined, single_comb
 use crate::f1::{
     ConfirmedFractal, F1Delta, F1InputError, F1State, FractalKind, FractalPoint, raw_from_closed,
 };
-use crate::input::QualityBar;
+use crate::input::{MarketDirection, QualityBar};
 use crate::quality::is_valid_quality_bar;
 use std::cmp::Ordering;
 
@@ -53,6 +53,9 @@ pub fn advance_f1(
     mut state: F1State,
     bar: &QualityBar,
 ) -> Result<(F1State, F1Delta), (F1State, F1InputError)> {
+    if state.initial_direction == MarketDirection::NoNetDisplacement {
+        return Err((state, F1InputError::InvalidInitialDirection));
+    }
     if !bar.closed {
         return Err((state, F1InputError::ActiveBar));
     }
@@ -69,6 +72,7 @@ pub fn advance_f1(
         }
     }
     let raw = raw_from_closed(bar);
+    state.raw.push(raw);
     let mut finalized = None;
     let mut confirmed = None;
     let mut tail_updated = false;

@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-05",
+  "scope": "F1: closed Bar through quality, inclusion, fractal, strict stroke, segment and frozen L0 under CompleteBoundary",
+  "authority": "Original lessons are primary. The reference implementation supplies documented engineering choices where the original does not prescribe scheduling details.",
+  "reference_revision": "chan-core-2026-final@758953cf87663140425c98d35e9ed0d7c0ceeaf8",
+  "external_review": {
+    "tool": "Kimi Code CLI 2.1.1",
+    "configured_model": "kimi-code/k3",
+    "mode": "read-only",
+    "review_exit_code": 0,
+    "candidate_order_followup_exit_code": 0
+  },
+  "decisions": [
+    {
+      "topic": "Initial three strokes and unknown initial inclusion direction",
+      "decision": "Reject a declared start whose first three confirmed strokes have no common overlap; never silently change the root. Reject NoNetDisplacement before consuming the first Bar.",
+      "basis": "Lessons 65 and 77; F02 and F10; explicit CompleteBoundary contract",
+      "verification": "f1_start_e2e; before-fix replay published invalid L0 in both directions"
+    },
+    {
+      "topic": "Earlier unresolved boundary versus later recognized candidate",
+      "decision": "An earlier formed primary fractal in SeekingSecond or SeekingActualBreak blocks later publication until it confirms or is invalidated.",
+      "basis": "Lessons 67, 71, 78 plus the explicit scheduling choice in ChanSegmentCalculator::cal_seg_sure and treat_fx_eigen; Kimi followup supports this choice without treating it as a verbatim original rule",
+      "verification": "67-pending-gap-blocks-later-lower-peak and 71-pending-real-break-blocks-later-lower-peak, mirrored full Bar replays; candidate invalidation remains covered"
+    },
+    {
+      "topic": "Second fractal and new extreme occur in the same confirmed stroke",
+      "decision": "Keep recognition before invalidation when a strict second fractal is already present. Do not adopt the review suggestion to unconditionally discard first.",
+      "basis": "Lesson 78 conditions continuation on the absence of the second fractal. The collision fixture has that fractal; the reference find_revert_fx likewise tests it. A new extreme before any second fractal still invalidates the candidate.",
+      "verification": "78-second-fractal-and-new-high-in-same-stroke and 78-gap-candidate-invalidated-by-new-high, mirrored full Bar replays"
+    },
+    {
+      "topic": "Single-price overlap and strict real break",
+      "decision": "Closed intervals touching at one price overlap and have no gap; a real directional break is strict. These are different predicates.",
+      "basis": "Selected profile and reference EigenFx::update_fx/actual_break. The local real-break witness is not claimed to reproduce the general lesson-65 dj<=gi definition by itself.",
+      "verification": "65-77-first-three-touch-at-one-price, 67-first-two-touch-is-no-gap and 71-real-break-equality-still-waits, mirrored full Bar replays"
+    },
+    {
+      "topic": "Second-sequence rules and continued publication",
+      "decision": "Use ordinary inclusion and strict fractals, without recursively requiring another second sequence. Replayed successor segments share endpoints and preserve publication time order.",
+      "basis": "Lessons 67, 77 and 78. Do not copy the reference implementation's contrary inclusion/recursion behavior.",
+      "verification": "Second gap, inclusion and equal-high fixtures; the gap-open fixture checks its first three completed segments"
+    },
+    {
+      "topic": "Actual full price range",
+      "decision": "Retain the minimal original Bar price/time projection and compute the range over the raw endpoint-time interval, including its endpoint Bars. Exclude Bars after the endpoint even if later absorbed into the same combined K line.",
+      "basis": "Lesson 78 and F06/F19: actual internal extremes need not be selected endpoints or survive inclusion",
+      "verification": "segment_range_e2e: four before-fix failures cover short unqualified reversals, discarded inclusion extremes, mirrored directions and post-endpoint exclusion"
+    }
+  ],
+  "boundaries": [
+    "Uses the documented strict stroke profile, conservative online fractal/stroke freezing and explicit CompleteBoundary.",
+    "Synthetic numerical structures instantiate original rules; they do not claim pixel-exact reconstruction of historical diagrams.",
+    "The finite real OHLC replay checks the formal pipeline and invariants, not an independent oracle for every original semantic case.",
+    "No F2 implementation, new formal proof, annual market replay or performance acceptance is claimed.",
+    "The reference repository was not modified."
+  ]
+}

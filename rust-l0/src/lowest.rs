@@ -74,7 +74,7 @@ impl LowestMovement {
 pub struct CompleteBoundary {
     /// 首条 L0 起点在去包含 K 线数组中的下标。
     pub root_point: usize,
-    /// 第一根合并 K 线使用的包含方向。
+    /// 第一根合并 K 线使用的包含方向；必须明确为向上或向下。
     pub initial_inclusion_direction: MarketDirection,
     /// 边界证据获知时间，须落在首条 L0 起点时间与确认时间之间。
     pub known_at: DateTime<Utc>,
@@ -157,7 +157,8 @@ pub fn movement_of_segment(
     movement.is_valid().then_some(movement)
 }
 
-/// 建立空管线；边界与首条 L0 的一致性在首次发布时校验。
+/// 建立空管线；首次推进拒绝未知包含方向，前三笔冻结时校验起点重叠，
+/// 首次发布时再核验 root_point 和边界获知时间。
 pub fn new_pipeline_state(
     stream: BarStreamIdentity,
     boundary: CompleteBoundary,

@@ -1,0 +1,20 @@
+{
+  "source_path": "/Users/gxj/core/chan-core-2026-final/test_data/klu_1m.csv",
+  "source_revision": "758953cf87663140425c98d35e9ed0d7c0ceeaf8",
+  "source_sha256": "4f35939c9dc5f572fe2b5c615e7ca28aa1e7a230bd3e1e3a1645b2089aaa3400",
+  "slice": "header plus first 4320 data rows",
+  "fixture_sha256": "5c1985cc84a8bbc08d1418da581028c9aa4ea950312483b880095af38ff7bd06",
+  "rows": 4320,
+  "first_time": "2024-10-01 00:00:00",
+  "last_time": "2024-10-03 23:59:00",
+  "timestamp_interpretation": "UTC for this replay; source CSV has no timezone field",
+  "market_instrument": "not asserted; source file provides only timestamp and OHLC",
+  "volume": 1,
+  "turnover": null,
+  "left_boundary": {
+    "root_combined_index": 10,
+    "known_at": "2024-10-01T00:10:00Z",
+    "initial_inclusion_direction": "Upward"
+  },
+  "scope": "finite Bar-to-L0 integration and mirror/frozen-prefix/geometric invariants; not independent semantic oracle or annual replay"
+}

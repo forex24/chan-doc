@@ -77,6 +77,8 @@ pub struct F1State {
     pub stream: BarStreamIdentity,
     /// 首次去包含使用的方向前提。
     pub initial_direction: MarketDirection,
+    /// 已接收闭合 Bar 的最小价格/时间来源账本，供线段完整区间按真实端点取值。
+    pub raw: Vec<RawBar>,
     /// 去包含 K 线账本；最后一根为可吸收新输入的活动尾。
     pub combined: Vec<CombinedBar>,
     /// 按中心位置递增的已确认分型账本。
@@ -99,6 +101,8 @@ pub struct F1Delta {
 /// 闭合 Bar 进入形态层前的拒绝原因。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum F1InputError {
+    /// 初始包含方向没有明确为向上或向下，不能据此处理左边界。
+    InvalidInitialDirection,
     /// 输入尚未闭合。
     ActiveBar,
     /// OHLC、时间或市场流字段不合法。
@@ -113,6 +117,7 @@ pub fn new_f1_state(stream: BarStreamIdentity, initial_direction: MarketDirectio
     F1State {
         stream,
         initial_direction,
+        raw: Vec::new(),
         combined: Vec::new(),
         confirmed: Vec::new(),
         forming: None,

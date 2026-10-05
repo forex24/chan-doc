@@ -1,0 +1,31 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "rust-l0/Cargo.toml",
+    "--test",
+    "segment_range_e2e",
+    "--test",
+    "f1_rules_e2e",
+    "--no-fail-fast"
+  ],
+  "exit_code": 101,
+  "source_sha256": {
+    "rust-l0/src/lib.rs": "fd24684eb949b6e657c70ee823e36c2894387b01d48f9909f3441a61f8c48864",
+    "rust-l0/src/lowest.rs": "d172543658bd92f87992574ad64a61e90086bb8fd7a554ad0351198fb9786771",
+    "rust-l0/src/quality.rs": "b8c572e9d25465e356d239f68bbadd814ace8523a9a0f6f97729b3f9e57da732",
+    "rust-l0/src/input.rs": "b497d3d5de7a5dabc170129b121e7fb416cf73f33691997f81ac5cc611566e88",
+    "rust-l0/src/f1/stroke.rs": "fc3f5f26e5a2df627ac65702692362f07cf9f89fded452373b2054f7e80e3551",
+    "rust-l0/src/f1/feature.rs": "14733ee1d3708df673d450ebb010393560bb9d945b49b27b99719afc23270929",
+    "rust-l0/src/f1/fractal.rs": "1192f4c86774878bcc722ca824b2725dc21a23edfe53d805d581003fa5f23dbf",
+    "rust-l0/src/f1/mod.rs": "070477a6913c383270ae6baa14d791c38b23215b39f03268ee9444b957a3c8c3",
+    "rust-l0/src/f1/inclusion.rs": "acbfef71fbb52fa51971e4f5f8b692a0696ba66d963f4dcdf7b0ba384e4ac865",
+    "rust-l0/src/f1/segment.rs": "29301d87009ccdb2efbfd2a60d7b351614e8159d03ec64accc0b7d59e52525f5",
+    "rust-l0/src/f1/morphology.rs": "867c0ed47fc55c9249f86cac23fff1485eb3c95cbe3be510a4cdf99096a4fc8b"
+  },
+  "failing_output": "\nrunning 1 test\ntest original_segment_rules_hold_through_the_complete_bar_pipeline ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n\nrunning 1 test\ntest full_range_keeps_unselected_raw_extremes_and_excludes_post_endpoint_bars ... FAILED\n\nfailures:\n\n---- full_range_keeps_unselected_raw_extremes_and_excludes_post_endpoint_bars stdout ----\n\nthread 'full_range_keeps_unselected_raw_extremes_and_excludes_post_endpoint_bars' (12284266) panicked at tests/segment_range_e2e.rs:116:5:\nabsorb=false mirror=false expected=[-1,15.125] actual=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: 0.0 }, end_endpoint: MarketEndpoint { market_order: 35, open_time: 1970-01-01T00:00:35Z, price: 15.125 }, direction: Up, full_range: PriceInterval { low: 0.0, high: 15.125 }, known_at: 1970-01-01T00:01:10Z }\nabsorb=false mirror=true expected=[-15.125,1] actual=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: -0.0 }, end_endpoint: MarketEndpoint { market_order: 35, open_time: 1970-01-01T00:00:35Z, price: -15.125 }, direction: Down, full_range: PriceInterval { low: -15.125, high: -0.0 }, known_at: 1970-01-01T00:01:10Z }\nabsorb=true mirror=false expected=[-2,15.125] actual=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: 0.0 }, end_endpoint: MarketEndpoint { market_order: 35, open_time: 1970-01-01T00:00:36Z, price: 15.125 }, direction: Up, full_range: PriceInterval { low: 0.0, high: 15.125 }, known_at: 1970-01-01T00:01:12Z }\nabsorb=true mirror=true expected=[-15.125,2] actual=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: -0.0 }, end_endpoint: MarketEndpoint { market_order: 35, open_time: 1970-01-01T00:00:36Z, price: -15.125 }, direction: Down, full_range: PriceInterval { low: -15.125, high: -0.0 }, known_at: 1970-01-01T00:01:12Z }\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    full_range_keeps_unselected_raw_extremes_and_excludes_post_endpoint_bars\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n"
+}

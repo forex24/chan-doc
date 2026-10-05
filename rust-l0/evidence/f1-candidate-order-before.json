@@ -1,0 +1,30 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "rust-l0/Cargo.toml",
+    "--test",
+    "f1_rules_e2e"
+  ],
+  "exit_code": 101,
+  "baseline": "c9860e68faa52714a79e71900e0dfbd799b6fa24",
+  "source_sha256": {
+    "rust-l0/src/lib.rs": "fd24684eb949b6e657c70ee823e36c2894387b01d48f9909f3441a61f8c48864",
+    "rust-l0/src/lowest.rs": "d172543658bd92f87992574ad64a61e90086bb8fd7a554ad0351198fb9786771",
+    "rust-l0/src/quality.rs": "b8c572e9d25465e356d239f68bbadd814ace8523a9a0f6f97729b3f9e57da732",
+    "rust-l0/src/input.rs": "b497d3d5de7a5dabc170129b121e7fb416cf73f33691997f81ac5cc611566e88",
+    "rust-l0/src/f1/stroke.rs": "fc3f5f26e5a2df627ac65702692362f07cf9f89fded452373b2054f7e80e3551",
+    "rust-l0/src/f1/feature.rs": "14733ee1d3708df673d450ebb010393560bb9d945b49b27b99719afc23270929",
+    "rust-l0/src/f1/fractal.rs": "1192f4c86774878bcc722ca824b2725dc21a23edfe53d805d581003fa5f23dbf",
+    "rust-l0/src/f1/mod.rs": "070477a6913c383270ae6baa14d791c38b23215b39f03268ee9444b957a3c8c3",
+    "rust-l0/src/f1/inclusion.rs": "acbfef71fbb52fa51971e4f5f8b692a0696ba66d963f4dcdf7b0ba384e4ac865",
+    "rust-l0/src/f1/segment.rs": "a753c08af8f62ebb7a82413f7ac1a390810f76f5a91b77bdc642b211e6340dcb",
+    "rust-l0/src/f1/morphology.rs": "867c0ed47fc55c9249f86cac23fff1485eb3c95cbe3be510a4cdf99096a4fc8b"
+  },
+  "test_sha256": "5c15d81a98133b25b963f53f19e77e3f9da717250dcaff9a472bf1c62899cb34",
+  "failing_output": "\nrunning 1 test\ntest original_segment_rules_hold_through_the_complete_bar_pipeline ... FAILED\n\nfailures:\n\n---- original_segment_rules_hold_through_the_complete_bar_pipeline stdout ----\n\nthread 'original_segment_rules_hold_through_the_complete_bar_pipeline' (12269092) panicked at tests/f1_rules_e2e.rs:335:5:\n67-pending-gap-blocks-later-lower-peak mirror=false: expected end=3 candidate_bar=59 publication_bar=115 reason=RepairedBySecondSequence, actual first_bar=Some(91) first=Some(ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 7, direction: Up, elements: [FeatureElement { source_stroke_indices: [5], source_stroke_index: 5, interval: PriceInterval { low: 12.0, high: 18.125 }, extreme_source_stroke_index: 5 }, FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: 13.0, high: 19.125 }, extreme_source_stroke_index: 7 }, FeatureElement { source_stroke_indices: [9], source_stroke_index: 9, interval: PriceInterval { low: 11.0, high: 18.125 }, extreme_source_stroke_index: 9 }], price_interval: PriceInterval { low: 0.0, high: 20.125 }, start_price: 0.0, end_price: 19.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:32Z, confirmed_at: 1970-01-01T00:01:32Z }, reason: ImmediateNoGap })\n67-pending-gap-blocks-later-lower-peak mirror=true: expected end=3 candidate_bar=59 publication_bar=115 reason=RepairedBySecondSequence, actual first_bar=Some(91) first=Some(ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 7, direction: Down, elements: [FeatureElement { source_stroke_indices: [5], source_stroke_index: 5, interval: PriceInterval { low: -18.125, high: -12.0 }, extreme_source_stroke_index: 5 }, FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: -19.125, high: -13.0 }, extreme_source_stroke_index: 7 }, FeatureElement { source_stroke_indices: [9], source_stroke_index: 9, interval: PriceInterval { low: -18.125, high: -11.0 }, extreme_source_stroke_index: 9 }], price_interval: PriceInterval { low: -20.125, high: -0.0 }, start_price: -0.0, end_price: -19.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:32Z, confirmed_at: 1970-01-01T00:01:32Z }, reason: ImmediateNoGap })\n71-pending-real-break-blocks-later-lower-peak mirror=false: expected end=3 candidate_bar=75 publication_bar=123 reason=ImmediateNoGap, actual first_bar=Some(107) first=Some(ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 9, direction: Up, elements: [FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: 3.5, high: 10.125 }, extreme_source_stroke_index: 7 }, FeatureElement { source_stroke_indices: [9], source_stroke_index: 9, interval: PriceInterval { low: 3.25, high: 11.125 }, extreme_source_stroke_index: 9 }, FeatureElement { source_stroke_indices: [11], source_stroke_index: 11, interval: PriceInterval { low: 3.125, high: 10.125 }, extreme_source_stroke_index: 11 }], price_interval: PriceInterval { low: 0.0, high: 12.125 }, start_price: 0.0, end_price: 11.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:48Z, confirmed_at: 1970-01-01T00:01:48Z }, reason: ImmediateNoGap })\n71-pending-real-break-blocks-later-lower-peak mirror=true: expected end=3 candidate_bar=75 publication_bar=123 reason=ImmediateNoGap, actual first_bar=Some(107) first=Some(ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 9, direction: Down, elements: [FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: -10.125, high: -3.5 }, extreme_source_stroke_index: 7 }, FeatureElement { source_stroke_indices: [9], source_stroke_index: 9, interval: PriceInterval { low: -11.125, high: -3.25 }, extreme_source_stroke_index: 9 }, FeatureElement { source_stroke_indices: [11], source_stroke_index: 11, interval: PriceInterval { low: -10.125, high: -3.125 }, extreme_source_stroke_index: 11 }], price_interval: PriceInterval { low: -12.125, high: -0.0 }, start_price: -0.0, end_price: -11.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:48Z, confirmed_at: 1970-01-01T00:01:48Z }, reason: ImmediateNoGap })\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    original_segment_rules_hold_through_the_complete_bar_pipeline\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n"
+}

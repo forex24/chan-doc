@@ -4,7 +4,9 @@ use chrono::{DateTime, TimeDelta, Utc};
 // Migrated existing behavioral tests; expected observations captured from the original oracle.
 use chan_l0::f1::fractal::{advance_f1, shape_at};
 use chan_l0::f1::inclusion::single_combined;
-use chan_l0::f1::{CombinedBar, F1State, FractalKind, FractalPoint, RawBar, new_f1_state};
+use chan_l0::f1::{
+    CombinedBar, F1InputError, F1State, FractalKind, FractalPoint, RawBar, new_f1_state,
+};
 use chan_l0::input::{BarStreamIdentity, MarketDirection, QualityBar};
 
 fn n(value: u64) -> DateTime<Utc> {
@@ -144,15 +146,27 @@ fn compare_with_runner(expected: &[String], actual: &[String]) {
 
 #[test]
 fn incremental_inclusion_fractal_matches_frozen_oracle() {
-    let expected = oracle_lines();
+    // u05把未知包含方向当成向下，已由正式左边界合同撤销；历史观测仍原样保留。
+    let expected: Vec<_> = oracle_lines()
+        .into_iter()
+        .filter(|line| !line.starts_with("u05."))
+        .collect();
     assert_eq!(
         expected.len(),
-        26,
+        22,
         "Dafny fixture omitted an event or strict-boundary case"
     );
     let mut actual = Vec::new();
     for (name, initial, bars) in fixtures() {
         let mut state = new_f1_state(stream(), initial);
+        if initial == MarketDirection::NoNetDisplacement {
+            for input in bars {
+                let (preserved, reason) = advance_f1(state.clone(), &input).unwrap_err();
+                assert_eq!(preserved, state);
+                assert_eq!(reason, F1InputError::InvalidInitialDirection);
+            }
+            continue;
+        }
         for (index, input) in bars.iter().enumerate() {
             let old_combined: Vec<String> = state.combined.iter().map(combined_text).collect();
             let old_confirmed: Vec<String> = state

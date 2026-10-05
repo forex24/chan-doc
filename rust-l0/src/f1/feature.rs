@@ -96,7 +96,11 @@ pub fn opposite(direction: &SegmentDirection) -> SegmentDirection {
 }
 /// 判断笔是否与当前线段方向相反。
 pub fn stroke_opposes(direction: &SegmentDirection, stroke_direction: &SegmentDirection) -> bool {
-    direction != stroke_direction
+    matches!(
+        (direction, stroke_direction),
+        (SegmentDirection::Up, SegmentDirection::Down)
+            | (SegmentDirection::Down, SegmentDirection::Up)
+    )
 }
 /// 判断两个价格闭区间是否相交，端点相等也算相交。
 pub fn intervals_intersect(a: &PriceInterval, b: &PriceInterval) -> bool {

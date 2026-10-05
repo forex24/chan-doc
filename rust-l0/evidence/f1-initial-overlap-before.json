@@ -1,0 +1,55 @@
+{
+  "baseline": "958f424c2313fc2d8e237ccb723ba8b701d5d975",
+  "build_command": [
+    "cargo",
+    "build",
+    "--offline",
+    "--locked",
+    "--release",
+    "--manifest-path",
+    "rust-l0/Cargo.toml",
+    "--message-format=json"
+  ],
+  "build_exit": 0,
+  "compile_command": [
+    "rustc",
+    "--edition=2024",
+    "-C",
+    "opt-level=3",
+    ".work/l0-review/replay.rs",
+    "-L",
+    "dependency=rust-l0/target/release/deps",
+    "--extern",
+    "chan_l0=/Users/gxj/core/chan-doc/rust-l0/target/release/libchan_l0.rlib",
+    "--extern",
+    "chrono=/Users/gxj/core/chan-doc/rust-l0/target/release/deps/libchrono-66b596f2c919053e.rlib",
+    "-o",
+    ".work/l0-review/replay"
+  ],
+  "compile_exit": 0,
+  "replay_exit": 101,
+  "source_sha256": {
+    "rust-l0/src/lib.rs": "fd24684eb949b6e657c70ee823e36c2894387b01d48f9909f3441a61f8c48864",
+    "rust-l0/src/lowest.rs": "820ac50568b55ca178b033a8a037451f98e27472ba836ad2f69d9d5630ff4b88",
+    "rust-l0/src/quality.rs": "b8c572e9d25465e356d239f68bbadd814ace8523a9a0f6f97729b3f9e57da732",
+    "rust-l0/src/input.rs": "b497d3d5de7a5dabc170129b121e7fb416cf73f33691997f81ac5cc611566e88",
+    "rust-l0/src/f1/stroke.rs": "fc3f5f26e5a2df627ac65702692362f07cf9f89fded452373b2054f7e80e3551",
+    "rust-l0/src/f1/feature.rs": "14733ee1d3708df673d450ebb010393560bb9d945b49b27b99719afc23270929",
+    "rust-l0/src/f1/fractal.rs": "b16abd5e7638a363beae9f04f7563d01745e91074894ed3c57b1c4b7832afad2",
+    "rust-l0/src/f1/mod.rs": "c5d81b61a0d2868e87b7b5bb8ee9dfa453020f1b33049f696ac5eda8308d116e",
+    "rust-l0/src/f1/inclusion.rs": "acbfef71fbb52fa51971e4f5f8b692a0696ba66d963f4dcdf7b0ba384e4ac865",
+    "rust-l0/src/f1/segment.rs": "b6ea20433d5015535b20ab37826e0b4f4bc340eefa649b39e84bf4f63c0324c3",
+    "rust-l0/src/f1/morphology.rs": "867c0ed47fc55c9249f86cac23fff1485eb3c95cbe3be510a4cdf99096a4fc8b"
+  },
+  "replay_source_sha256": "d265b47d4da22b71a38e46e376dfb4a652f749902e066e7d880945718ae5ad74",
+  "published": [
+    "PUBLISHED mirror=false at_bar=99 segment=ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 5, direction: Up, elements: [FeatureElement { source_stroke_indices: [3], source_stroke_index: 3, interval: PriceInterval { low: -1.0, high: 5.125 }, extreme_source_stroke_index: 3 }, FeatureElement { source_stroke_indices: [5], source_stroke_index: 5, interval: PriceInterval { low: 22.0, high: 30.125 }, extreme_source_stroke_index: 5 }, FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: 21.0, high: 28.125 }, extreme_source_stroke_index: 7 }], price_interval: PriceInterval { low: -1.0, high: 30.125 }, start_price: 10.0, end_price: 30.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:16Z, confirmed_at: 1970-01-01T00:01:40Z }, reason: RepairedBySecondSequence } movement=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: 10.0 }, end_endpoint: MarketEndpoint { market_order: 41, open_time: 1970-01-01T00:00:41Z, price: 30.125 }, direction: Up, full_range: PriceInterval { low: -1.0, high: 30.125 }, known_at: 1970-01-01T00:01:40Z } first_three=[PriceInterval { low: 10.0, high: 20.125 }, PriceInterval { low: 0.0, high: 20.125 }, PriceInterval { low: 0.0, high: 5.125 }] overlap=[10,5.125] valid=false",
+    "PUBLISHED mirror=false at_bar=99 segment=ConfirmedSegment { ordinal: 1, begin_stroke_index: 5, end_stroke_index: 8, direction: Down, elements: [FeatureElement { source_stroke_indices: [6], source_stroke_index: 6, interval: PriceInterval { low: 22.0, high: 28.125 }, extreme_source_stroke_index: 6 }, FeatureElement { source_stroke_indices: [8], source_stroke_index: 8, interval: PriceInterval { low: 21.0, high: 26.125 }, extreme_source_stroke_index: 8 }, FeatureElement { source_stroke_indices: [10], source_stroke_index: 10, interval: PriceInterval { low: 23.0, high: 29.125 }, extreme_source_stroke_index: 10 }], price_interval: PriceInterval { low: 21.0, high: 30.125 }, start_price: 30.125, end_price: 21.0, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:40Z, confirmed_at: 1970-01-01T00:01:40Z }, reason: ImmediateNoGap } movement=LowestMovement { start_endpoint: MarketEndpoint { market_order: 41, open_time: 1970-01-01T00:00:41Z, price: 30.125 }, end_endpoint: MarketEndpoint { market_order: 65, open_time: 1970-01-01T00:01:05Z, price: 21.0 }, direction: Down, full_range: PriceInterval { low: 21.0, high: 30.125 }, known_at: 1970-01-01T00:01:40Z } first_three=[PriceInterval { low: 22.0, high: 30.125 }, PriceInterval { low: 22.0, high: 28.125 }, PriceInterval { low: 21.0, high: 28.125 }] overlap=[22,28.125] valid=true",
+    "PUBLISHED mirror=true at_bar=99 segment=ConfirmedSegment { ordinal: 0, begin_stroke_index: 0, end_stroke_index: 5, direction: Down, elements: [FeatureElement { source_stroke_indices: [3], source_stroke_index: 3, interval: PriceInterval { low: -5.125, high: 1.0 }, extreme_source_stroke_index: 3 }, FeatureElement { source_stroke_indices: [5], source_stroke_index: 5, interval: PriceInterval { low: -30.125, high: -22.0 }, extreme_source_stroke_index: 5 }, FeatureElement { source_stroke_indices: [7], source_stroke_index: 7, interval: PriceInterval { low: -28.125, high: -21.0 }, extreme_source_stroke_index: 7 }], price_interval: PriceInterval { low: -30.125, high: 1.0 }, start_price: -10.0, end_price: -30.125, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:16Z, confirmed_at: 1970-01-01T00:01:40Z }, reason: RepairedBySecondSequence } movement=LowestMovement { start_endpoint: MarketEndpoint { market_order: 1, open_time: 1970-01-01T00:00:01Z, price: -10.0 }, end_endpoint: MarketEndpoint { market_order: 41, open_time: 1970-01-01T00:00:41Z, price: -30.125 }, direction: Down, full_range: PriceInterval { low: -30.125, high: 1.0 }, known_at: 1970-01-01T00:01:40Z } first_three=[PriceInterval { low: -20.125, high: -10.0 }, PriceInterval { low: -20.125, high: -0.0 }, PriceInterval { low: -5.125, high: -0.0 }] overlap=[-5.125,-10] valid=false",
+    "PUBLISHED mirror=true at_bar=99 segment=ConfirmedSegment { ordinal: 1, begin_stroke_index: 5, end_stroke_index: 8, direction: Up, elements: [FeatureElement { source_stroke_indices: [6], source_stroke_index: 6, interval: PriceInterval { low: -28.125, high: -22.0 }, extreme_source_stroke_index: 6 }, FeatureElement { source_stroke_indices: [8], source_stroke_index: 8, interval: PriceInterval { low: -26.125, high: -21.0 }, extreme_source_stroke_index: 8 }, FeatureElement { source_stroke_indices: [10], source_stroke_index: 10, interval: PriceInterval { low: -29.125, high: -23.0 }, extreme_source_stroke_index: 10 }], price_interval: PriceInterval { low: -30.125, high: -21.0 }, start_price: -30.125, end_price: -21.0, times: SegmentTimes { candidate_known_at: 1970-01-01T00:01:40Z, confirmed_at: 1970-01-01T00:01:40Z }, reason: ImmediateNoGap } movement=LowestMovement { start_endpoint: MarketEndpoint { market_order: 41, open_time: 1970-01-01T00:00:41Z, price: -30.125 }, end_endpoint: MarketEndpoint { market_order: 65, open_time: 1970-01-01T00:01:05Z, price: -21.0 }, direction: Up, full_range: PriceInterval { low: -30.125, high: -21.0 }, known_at: 1970-01-01T00:01:40Z } first_three=[PriceInterval { low: -30.125, high: -22.0 }, PriceInterval { low: -28.125, high: -22.0 }, PriceInterval { low: -28.125, high: -21.0 }] overlap=[-28.125,-22] valid=true"
+  ],
+  "result": [
+    "RESULT invalid_published_lowest_movements=2"
+  ],
+  "description": "Before-fix full Bar replay: two mirrored first segments violated the first-three overlap rule."
+}

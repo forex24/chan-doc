@@ -38,7 +38,7 @@ pub struct ConfirmedSegment {
     pub direction: SegmentDirection,
     /// 用于确认的三元素特征分型快照。
     pub elements: Vec<FeatureElement>,
-    /// 本段所有实际笔覆盖的价格区间，包含内部极值。
+    /// 两端实际来源时间之间的原始 Bar 价格区间，包含未入选笔端点的内部极值。
     pub price_interval: PriceInterval,
     /// 本段起点价格。
     pub start_price: f64,
@@ -116,6 +116,8 @@ pub struct SegmentState {
 /// 线段推进失败原因。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SegmentError {
+    /// 当前声明起点的前三笔没有公共重叠；后续笔不能修复该起点。
+    InvalidInitialOverlap,
     /// 源笔、分型下标或端点价格不合法。
     InvalidStrokeSource,
     /// 线段游标、候选窗口或端点顺序不合法。
@@ -155,18 +157,33 @@ pub fn new_segment_state() -> SegmentState {
         next_stroke_index: 0,
     }
 }
-/// 从源笔起点分型读取真实极值价格，下标无效时返回 None。
-fn stroke_begin_price(f1: &F1State, stroke: &ConfirmedStroke) -> Option<f64> {
+/// 从源笔起点分型读取真实极值来源时间和价格，下标无效时返回 None。
+fn stroke_begin_endpoint(f1: &F1State, stroke: &ConfirmedStroke) -> Option<(DateTime<Utc>, f64)> {
     let index = stroke.geometry.begin_index;
     if index >= f1.confirmed.len() {
         return None;
     }
     let point = &f1.confirmed[index].point;
     let center = center_position(&f1.combined, point)?;
+    let bar = &f1.combined[center];
     Some(match point.kind {
-        FractalKind::Top => f1.combined[center].high,
-        FractalKind::Bottom => f1.combined[center].low,
+        FractalKind::Top => (bar.high_slot, bar.high),
+        FractalKind::Bottom => (bar.low_slot, bar.low),
     })
+}
+/// 从源笔起点分型读取真实极值价格。
+fn stroke_begin_price(f1: &F1State, stroke: &ConfirmedStroke) -> Option<f64> {
+    stroke_begin_endpoint(f1, stroke).map(|(_, price)| price)
+}
+/// 检查从 first 开始的三根真实笔是否存在公共交集；缺失来源时返回 None。
+fn first_three_overlap(f1: &F1State, strokes: &[ConfirmedStroke], first: usize) -> Option<bool> {
+    let three = strokes.get(first..)?.get(..3)?;
+    let first = stroke_interval(f1, &three[0])?;
+    let second = stroke_interval(f1, &three[1])?;
+    let third = stroke_interval(f1, &three[2])?;
+    let low = first.low.max(second.low).max(third.low);
+    let high = first.high.min(second.high).min(third.high);
+    Some(low.is_finite() && high.is_finite() && low <= high)
 }
 /// 同时检查源下标顺序、前三笔公共重叠、中心破坏和两项方向消歧条件。
 pub fn actual_break(
@@ -189,9 +206,6 @@ pub fn actual_break(
     let Some(first) = stroke_interval(f1, &strokes[split]) else {
         return false;
     };
-    let Some(second) = stroke_interval(f1, &strokes[split + 1]) else {
-        return false;
-    };
     let Some(third) = stroke_interval(f1, &strokes[split + 2]) else {
         return false;
     };
@@ -204,9 +218,7 @@ pub fn actual_break(
     let Some(previous) = stroke_interval(f1, &strokes[split - 2]) else {
         return false;
     };
-    let overlap_low = first.low.max(second.low).max(third.low);
-    let overlap_high = first.high.min(second.high).min(third.high);
-    if !overlap_low.is_finite() || !overlap_high.is_finite() || overlap_low > overlap_high {
+    if first_three_overlap(f1, strokes, split) != Some(true) {
         return false;
     }
     let center_break = match direction {
@@ -387,6 +399,8 @@ pub fn advance_probe(
         ProbeStage::SeekingSecond {
             candidate_known_at, ..
         } => {
+            // 右元素同一根笔也可越过旧极值：已有严格第二分型时先确认。
+            // 78课的延续条件是“未形成第二分型又直接新高/新低”，不能省略前半句。
             if probe.second_target.is_some()
                 && let Some(witness) = evidence
             {
@@ -481,7 +495,7 @@ pub fn advance_probe(
         }
     }
 }
-/// 合并 [first, end) 的真实笔区间，并纳入 end 笔起点；end 笔其余部分属于下一段。
+/// 读取起终端点实际来源 Bar 之间的闭区间；不以笔端点或去包含后的区间代替原始价格。
 fn span_range(
     f1: &F1State,
     strokes: &[ConfirmedStroke],
@@ -491,28 +505,26 @@ fn span_range(
     if first > end || end >= strokes.len() {
         return None;
     }
-    if first == end {
-        let price = stroke_begin_price(f1, &strokes[end])?;
-        return Some(PriceInterval {
-            low: price,
-            high: price,
-        });
+    let (start_slot, _) = stroke_begin_endpoint(f1, &strokes[first])?;
+    let (end_slot, _) = stroke_begin_endpoint(f1, &strokes[end])?;
+    let start = f1
+        .raw
+        .binary_search_by_key(&start_slot, |bar| bar.slot)
+        .ok()?;
+    let end = f1
+        .raw
+        .binary_search_by_key(&end_slot, |bar| bar.slot)
+        .ok()?;
+    let bars = f1.raw.get(start..=end)?;
+    let mut range = PriceInterval {
+        low: bars[0].low,
+        high: bars[0].high,
+    };
+    for bar in &bars[1..] {
+        range.low = range.low.min(bar.low);
+        range.high = range.high.max(bar.high);
     }
-    let mut range = stroke_interval(f1, &strokes[first])?;
-    let mut index = first + 1;
-    while index < end {
-        let next = stroke_interval(f1, &strokes[index])?;
-        range = PriceInterval {
-            low: range.low.min(next.low),
-            high: range.high.max(next.high),
-        };
-        index += 1;
-    }
-    let tail_price = stroke_begin_price(f1, &strokes[end])?;
-    Some(PriceInterval {
-        low: range.low.min(tail_price),
-        high: range.high.max(tail_price),
-    })
+    Some(range)
 }
 /// 校验端点方向并构造全价格区间，确认时间取候选、识别和前一段确认时间的最大值。
 fn build_segment(
@@ -525,6 +537,15 @@ fn build_segment(
     if pending.begin_stroke_index >= strokes.len()
         || recognized.split_stroke_index >= strokes.len()
         || pending.begin_stroke_index >= recognized.split_stroke_index
+    {
+        return None;
+    }
+    let count = recognized.split_stroke_index - pending.begin_stroke_index;
+    if count < 3
+        || count.is_multiple_of(2)
+        || first_three_overlap(f1, strokes, pending.begin_stroke_index) != Some(true)
+        || stroke_direction(f1, &strokes[recognized.split_stroke_index - 1])
+            != Some(pending.direction)
     {
         return None;
     }
@@ -571,7 +592,7 @@ fn build_segment(
         reason: recognized.reason,
     })
 }
-/// 先推进所有独立切分候选，再更新活动第一序列；按候选顺序选择首个有效且有净位移的切分。
+/// 先推进独立切分候选；已形成分型的较早候选未确认或失效前，后续候选不得抢先发布。
 fn step_segment(
     mut state: SegmentState,
     f1: &F1State,
@@ -600,6 +621,20 @@ fn step_segment(
         state.pending = Some(pending);
         return Err((state, SegmentError::InvalidSegmentState));
     }
+    // 声明起点不能靠后面的合法三笔替代。第三笔冻结后即可判定，无需等到发布时。
+    if index >= pending.begin_stroke_index && index - pending.begin_stroke_index == 2 {
+        let overlap = first_three_overlap(f1, strokes, pending.begin_stroke_index);
+        if overlap != Some(true) {
+            state.pending = Some(pending);
+            return Err((
+                state,
+                match overlap {
+                    Some(false) => SegmentError::InvalidInitialOverlap,
+                    _ => SegmentError::InvalidStrokeSource,
+                },
+            ));
+        }
+    }
     let Some(direction) = stroke_direction(f1, &strokes[index]) else {
         state.pending = Some(pending);
         return Err((state, SegmentError::InvalidStrokeSource));
@@ -612,6 +647,7 @@ fn step_segment(
     let known_at = pending.known_at.max(strokes[index].confirmed_known_at);
     let mut next_probes = Vec::new();
     let mut selected = None;
+    let mut earlier_boundary_waiting = false;
     let mut probe_index = 0usize;
     while probe_index < pending.probes.len() {
         let probe = pending.probes[probe_index].clone();
@@ -637,13 +673,18 @@ fn step_segment(
             actual,
         ) {
             ProbeStep::Discarded => {}
-            ProbeStep::Waiting(waiting) => next_probes.push(waiting),
+            ProbeStep::Waiting(waiting) => {
+                earlier_boundary_waiting |= !matches!(waiting.stage, ProbeStage::SeekingPrimary);
+                next_probes.push(waiting);
+            }
             ProbeStep::Recognized(found) => {
                 if found.window.len() != 3 {
                     state.pending = Some(pending);
                     return Err((state, SegmentError::InvalidSegmentState));
                 }
-                if selected.is_none() {
+                // 较早候选若最终确认，会从其切分点重放后续笔；若被新极值取消，
+                // 同一极值也已取消这些较低高点/较高低点。无需缓存被阻挡的识别结果。
+                if selected.is_none() && !earlier_boundary_waiting {
                     let start_price = stroke_begin_price(f1, &strokes[pending.begin_stroke_index]);
                     if let Some(start_price) = start_price {
                         let endpoint = match pending.direction {
