@@ -1,21 +1,23 @@
+mod common;
+
+use chrono::{DateTime, TimeDelta, Utc};
 // Migrated existing behavioral tests; expected observations captured from the original oracle.
 use chan_l0::f1::fractal::{advance_f1, shape_at};
 use chan_l0::f1::inclusion::single_combined;
 use chan_l0::f1::{CombinedBar, F1State, FractalKind, FractalPoint, RawBar, new_f1_state};
 use chan_l0::input::{BarStreamIdentity, MarketDirection, QualityBar};
-use chan_l0::number::{Int, Nat};
 
-fn n(value: u64) -> Nat {
-    Nat::from_u64(value)
+fn n(value: u64) -> DateTime<Utc> {
+    DateTime::from_timestamp(value as i64, 0).unwrap()
 }
-fn i(value: i64) -> Int {
-    Int::from_i64(value)
+fn i(value: i64) -> f64 {
+    value as f64
 }
 fn stream() -> BarStreamIdentity {
     BarStreamIdentity {
         market: "EXAMPLE".into(),
         instrument: "F1".into(),
-        timeframe: n(1),
+        timeframe: TimeDelta::seconds(1),
     }
 }
 fn bar(slot: u64, low: i64, high: i64) -> QualityBar {
@@ -26,7 +28,7 @@ fn bar(slot: u64, low: i64, high: i64) -> QualityBar {
         high: i(high),
         low: i(low),
         close: i(high),
-        volume: n(1),
+        volume: 1,
         turnover: None,
         known_at: n(slot + 1),
         closed: true,
@@ -48,24 +50,24 @@ fn kind_code(value: &FractalKind) -> u8 {
 fn combined_text(value: &CombinedBar) -> String {
     format!(
         "{{{},{},{},{},{},{},{},{},{}}}",
-        value.first_slot.decimal(),
-        value.last_slot.decimal(),
-        value.low.decimal(),
-        value.high.decimal(),
+        value.first_slot.to_rfc3339(),
+        value.last_slot.to_rfc3339(),
+        value.low,
+        value.high,
         dir_code(&value.direction),
-        value.formed_known_at.decimal(),
-        value.known_at.decimal(),
-        value.low_slot.decimal(),
-        value.high_slot.decimal()
+        value.formed_known_at.to_rfc3339(),
+        value.known_at.to_rfc3339(),
+        value.low_slot.to_rfc3339(),
+        value.high_slot.to_rfc3339()
     )
 }
-fn point_text(value: &FractalPoint, confirmed_known_at: &Nat) -> String {
+fn point_text(value: &FractalPoint, confirmed_known_at: &DateTime<Utc>) -> String {
     format!(
         "{{{},{},{},{}}}",
         kind_code(&value.kind),
-        value.center_index.decimal(),
-        value.detected_known_at.decimal(),
-        confirmed_known_at.decimal()
+        value.center_index,
+        value.detected_known_at.to_rfc3339(),
+        confirmed_known_at.to_rfc3339()
     )
 }
 fn render(name: &str, step: usize, state: &F1State) -> String {
@@ -134,10 +136,7 @@ fn fixtures() -> Vec<(&'static str, MarketDirection, Vec<QualityBar>)> {
 }
 
 fn oracle_lines() -> Vec<String> {
-    include_str!("fixtures/f1_inclusion_fractal.txt")
-        .lines()
-        .map(str::to_owned)
-        .collect()
+    common::oracle_lines(include_str!("fixtures/f1_inclusion_fractal.txt"), "fractal")
 }
 fn compare_with_runner(expected: &[String], actual: &[String]) {
     assert_eq!(expected, actual, "frozen executable oracle mismatch");
@@ -214,16 +213,11 @@ fn incremental_inclusion_fractal_matches_frozen_oracle() {
                 !old_combined.is_empty() && next.combined.len() == old_combined.len()
             );
             for combined in &next.combined {
-                assert!(
-                    combined
-                        .formed_known_at
-                        .cmp_exact(&combined.known_at)
-                        .is_le()
-                );
-                assert!(combined.first_slot.cmp_exact(&combined.low_slot).is_le());
-                assert!(combined.low_slot.cmp_exact(&combined.last_slot).is_le());
-                assert!(combined.first_slot.cmp_exact(&combined.high_slot).is_le());
-                assert!(combined.high_slot.cmp_exact(&combined.last_slot).is_le());
+                assert!(combined.formed_known_at.cmp(&combined.known_at).is_le());
+                assert!(combined.first_slot.cmp(&combined.low_slot).is_le());
+                assert!(combined.low_slot.cmp(&combined.last_slot).is_le());
+                assert!(combined.first_slot.cmp(&combined.high_slot).is_le());
+                assert!(combined.high_slot.cmp(&combined.last_slot).is_le());
             }
             actual.push(render(name, index + 1, &next));
             state = next;
@@ -277,26 +271,26 @@ fn incremental_inclusion_fractal_matches_frozen_oracle() {
     for (name, right) in [("s01", equal_high), ("s02", equal_low)] {
         let bars = vec![
             CombinedBar {
-                first_slot: left.first_slot.clone(),
-                last_slot: left.last_slot.clone(),
-                low: left.low.clone(),
-                high: left.high.clone(),
+                first_slot: left.first_slot,
+                last_slot: left.last_slot,
+                low: left.low,
+                high: left.high,
                 direction: MarketDirection::Upward,
-                formed_known_at: left.formed_known_at.clone(),
-                known_at: left.known_at.clone(),
-                low_slot: left.low_slot.clone(),
-                high_slot: left.high_slot.clone(),
+                formed_known_at: left.formed_known_at,
+                known_at: left.known_at,
+                low_slot: left.low_slot,
+                high_slot: left.high_slot,
             },
             CombinedBar {
-                first_slot: middle.first_slot.clone(),
-                last_slot: middle.last_slot.clone(),
-                low: middle.low.clone(),
-                high: middle.high.clone(),
+                first_slot: middle.first_slot,
+                last_slot: middle.last_slot,
+                low: middle.low,
+                high: middle.high,
                 direction: MarketDirection::Upward,
-                formed_known_at: middle.formed_known_at.clone(),
-                known_at: middle.known_at.clone(),
-                low_slot: middle.low_slot.clone(),
-                high_slot: middle.high_slot.clone(),
+                formed_known_at: middle.formed_known_at,
+                known_at: middle.known_at,
+                low_slot: middle.low_slot,
+                high_slot: middle.high_slot,
             },
             right,
         ];

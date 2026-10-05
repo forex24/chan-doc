@@ -1,56 +1,92 @@
-# Rust L0 独立副本
+# Rust L0
 
-本目录只包含已有 Rust 实现中的 **Bar → 去包含 → 分型 → 笔 → 线段 → L0**，以及质量门和精确整数依赖。没有复制 F2 的中枢、解释集合、递归升层、同级分解、背驰、策略或来源调度引擎。
+本目录实现 **Bar → 质量门 → 去包含 → 分型 → 笔 → 线段 → L0**。只包含最低层结构，不包含 F2 的中枢、递归升层、同级分解、背驰或策略。
+
+## 数据类型
+
+- 价格：`f64`。质量门拒绝 `NaN` 和正负无穷；比较仍使用规则要求的严格大小或相等关系，不加入模糊容差。
+- 绝对时间：`chrono::DateTime<Utc>`。包括 Bar 开始时间、极值来源时间、形成时间和确认时间。时间不在内部转换为 Unix 秒。
+- 周期：`chrono::TimeDelta`，必须为正时长。闭合时间使用 `checked_add_signed`，越界则拒绝。
+- 数量、成交额和事件序号：`u64`。数量单位由调用方固定；可选成交额用 `Option<u64>`。事件序号耗尽时拒绝后续事件，不回绕。
+- 集合下标：`usize`。分型中心直接访问去包含 K 线数组，不再构造大整数并线性查找。
+- 小型值对象使用 `Copy`；包含字符串或集合的状态使用 `Clone`；只读序列接口接收切片。
+
+外部数据在输入边界解析成 UTC 时间。日志和导出示例使用 `to_rfc3339()`，保留时区及亚秒精度。二进制浮点价格不再承诺任意精度整数的精确性；原来依赖超大整数的输入不属于当前合同。
+
+## 正式入口
+
+1. 用 `quality::empty_bar_quality_state(stream)` 建立质量账本，通过 `apply_quality_event` 输入事件。
+2. 用 `lowest::new_pipeline_state(stream, boundary)` 建立结构管线。
+3. 仅将 `GateAccepted.structure_material` 中新产生的闭合 Bar 交给 `lowest::advance_pipeline`。活动尾更新和幂等重送不一定产生材料。
+4. 消费 `F1PipelineDelta.lowest_movements`，或读取 `F1PipelineState.lowest_movements` 的完整账本。
+
+`LowestMovement` 直接包含起点、终点、方向、全价格范围和确认时间。`market_order` 表示分型中心在去包含 K 线数组中的下标，`open_time` 表示真实极值来源 Bar 的开始时间，两者不能混用。
+
+`CompleteBoundary` 仍是原 F1 实现的调用前提。首条输入不是天然完整市场起点；其 `root_point` 必须与首条 L0 起点的合并 K 线下标一致。它不授予 F2 整体完成或升层资格。R4 的已批准业务边界见 [规则总表 §2.5](../缠论业务规则总表.md#25-r4未知左边界下的局部能力已批准)，本库尚未实现 F2/R4。
+
+错误返回的状态边界：
+
+- 质量门拒绝：账本和事件序号不变。
+- 形态层拒绝：整条结构管线不变。
+- 线段或 L0 失败：保留已经推进的形态层，恢复本轮推进前的线段状态和 L0 账本。不能再次提交同一根 Bar；先处理错误原因，再继续推进。
+
+字段、函数和关键算法的中文说明见各模块源码及 `cargo doc` 生成的文档。完整组合用法见 [组合 E2E](tests/pipeline_e2e.rs)。
+
+## 一字板包含规则
+
+在通常的向上 `max/max`、向下 `min/min` 合并之外，吸收参考项目 `chan-core-2026-final` 的一字板特例：
+
+- 向上合并时，若新 Bar 的 `high == low == 当前合并 K 线 high`，保留原高低价。
+- 向下合并时，若新 Bar 的 `high == low == 当前合并 K 线 low`，保留原高低价。
+- 两种情况都继续记录新 Bar 的开始时间和最大获知时间；形成时间及极值来源保持原值。连续一字板重复应用同一规则。
+- 内部一字板、反向边缘一字板及普通 Bar 仍按通常包含规则处理；非包含的一字板建立新合并 K 线。尚无净方向时保留本库原有处理。
+
+这样可避免顺向边缘一字板把原价格区间压成一点。只引入这个区间特例，同价极值仍保留本库规定的最早来源。参考定位：`chan-core-2026-final@758953c` 的 `crates/chan-engine/src/kline.rs::merge_klu_into_klc`，以及 `pychan/Combiner/KLine_Combiner.py::try_add`。
+
+## 旧接口迁移
+
+这是一次公开数据类型调整，调用方需要同步迁移。
+
+| 旧接口 | 当前接口 |
+| --- | --- |
+| `Int`、`Nat` 与 `number` 模块 | 原生 `f64`、`u64`、`usize` 和 chrono 日期/时长 |
+| `KnownCompleteMovement.key` / `MovementKey` | 扁平的 `LowestMovement` |
+| `level_ordinal`、`composition`、`direct_materials` | 删除；L0 类型已确定层级及来源种类 |
+| `state.lowest.completed` | `state.lowest_movements` |
+| `movement_key_is_valid` | `LowestMovement::is_valid` |
+| 手写 `copy_*` 函数 | `Clone::clone` 或直接复制 `Copy` 值 |
+| 笔的两个同步分型计数 | `processed_point_count` |
+| 笔的重复 `begin_point_index` | `geometry.begin_index` |
+| 跨调用的 `PendingReverse` | 反向笔成立时在同一调用内确认前笔 |
+| `SegmentTimes.occurred_at` | 删除重复时间，使用 `candidate_known_at` |
+| 未使用的 `input::CompleteBoundary` / `LeftMarketBoundary` | 只保留管线实际使用的 `lowest::CompleteBoundary` |
 
 ## 构建和验证
 
+需要支持 Rust 2024 edition 的工具链。直接依赖只有 chrono，关闭时钟和本地时区功能，只启用 `std`。
+
 ```sh
-cargo test --manifest-path rust-l0/Cargo.toml
-cargo build --release --manifest-path rust-l0/Cargo.toml
+cargo fmt --manifest-path rust-l0/Cargo.toml --check
+cargo clippy --offline --release --manifest-path rust-l0/Cargo.toml --all-targets -- -D warnings
+cargo test --offline --release --manifest-path rust-l0/Cargo.toml
+cargo build --offline --release --manifest-path rust-l0/Cargo.toml
+cargo doc --offline --no-deps --manifest-path rust-l0/Cargo.toml
 ```
 
-从本目录运行时省略 `--manifest-path`。需要支持 Rust 2024 edition 的工具链；本次使用 rustc 1.99.0。依赖只有 `num-bigint`、`num-traits` 及其传递依赖。**运行、构建和测试均不需要 Verus、Dafny、Python 或原工作树。** 首次构建需要下载 Cargo.lock 中的 crates，已有缓存时可加 `--offline`。
+首次获取依赖时可去掉 `--offline`。测试不需要 Verus、Dafny、Python 或原工作树。
 
-## 入口与模块
+## 验证来源及边界
 
-| 模块 | 用途 |
-| --- | --- |
-| `input` | Bar、市场流身份、追加与活动尾更新事件 |
-| `quality` | 序号、流身份、时间、OHLC、活动尾及已闭合历史保护 |
-| `f1::inclusion` / `fractal` | 去包含、分型检测与确认 |
-| `f1::stroke` / `morphology` | 增量笔与合并推进 |
-| `f1::feature` / `segment` | 特征序列、缺口/无缺口识别、线段推进 |
-| `lowest` | 完成线段到 L0 的投影、追加账本、完整管线 |
-| `number` | 任意精度整数、自然数和精确运算 |
+- 保留既有质量、包含/分型、笔、线段测试场景。原始 Dafny 执行观测在 [fixtures](tests/fixtures) 和 [历史抽取证据](evidence/extraction-receipt.json) 中保持原样。
+- 原 249 条冻结观测中，q20 使用超出当前数值/日期合同的任意精度数据，明确排除；其余 248 条继续比较。`tests/common` 只在期望侧将历史场景的整数时间按 Unix 秒转换为 RFC 3339。
+- 新增质量门到 L0 的组合回放基线，录自重构前 `54c2ded`。上下镜像各 128 根 Bar，共 14 条 L0；另一组使用小数价格、1970 年以前的 UTC 日期和纳秒时间，按相同已冻结期望进行变换对照。输出位于 `target/e2e/`。
+- 类型边界 E2E 检查有限极值价格、每个 OHLC 字段的非有限值拒绝、日期加法越界、非正周期及事件序号耗尽。
+- [一字板 E2E](tests/limit_board_e2e.rs) 在实现前复现压扁区间问题。12 组边界场景覆盖上下方向及普通包含；另在上下镜像各 128 根基础 Bar 中插入 256 根连续一字板，共处理 768 根含一字板 Bar，逐步对照未插入序列的 L0 发布结果，共完成 14 条 L0。检查冻结前缀、极值来源及时间推进，生成 `target/e2e/limit-board-*.txt`。
+- 删除任意精度数值模块及其专属测试。旧抽取日志只描述历史版本，不能当作本次验证结果。
+- 未重新执行形式化证明、BTC/EUR 全年回放或性能基准；本次结果不证明全部缠论规则，也不证明 F2。
 
-正式组合入口：
+## 历史来源
 
-1. `quality::empty_bar_quality_state` 建立质量状态；`apply_quality_event` 接收 `BarStreamEvent`。
-2. 仅将 `GateAccepted.structure_material` 中的已闭合 Bar 交给 `lowest::advance_pipeline`。活动 Bar 更新可能没有结构材料。
-3. 使用 `lowest::new_pipeline_state(stream, boundary)` 建立管线。`advance_pipeline` 返回新状态与增量；出错返回保留状态和错误。
-4. 消费 `F1PipelineDelta.lowest_movements`。这些才是此次新增的完成 L0；不要将形成中的分型、笔或线段当成已完成 L0。
+代码最初从 `/Users/gxj/.codex/worktrees/f2-combination-closure/dafny/f2-authority/verus-core` 抽取，使用 Verus 官方宏的 `EraseAll` 转换剥离证明；逐文件来源见 [抽取收据](evidence/extraction-receipt.json)。
 
-完整用法和逐 Bar 状态检查见 [线段 E2E](tests/f1_segment.rs) 的 `fixed_history_reaches_segment_owner`；质量输入用法见 [质量门测试](tests/quality.rs)。
-
-`CompleteBoundary` 是沿用原实现的调用前提。**首条输入不是天然完整市场起点**，本次抽取没有新增未知左边界恢复算法，也不把该参数升级为 F2 的完成授权。`slot`、`timeframe`、`known_at` 的单位和市场流必须由调用方一致提供；价格缩放由调用方固定，内部不使用浮点替代。
-
-这不表示 F2 的未知边界规则尚未确定：**R4 已批准未知整体起点下的局部识别、持续推进和发布**，同时禁止未获证整体的普通完成与升层。后续 Rust F2 应按 [规则总表 §2.5](../缠论业务规则总表.md#25-r4未知左边界下的局部能力已批准) 接通这些能力，不以旧 Dafny 验收未结束为阻塞。本 L0 副本尚未实现 R4，也不因该规则改变 F1 前提。
-
-原 L0 输出沿用通用 `MovementKey` 形状。因此类型中仍有 `level_ordinal` 和 `ConsolidationMovement` / `TrendMovement` 枚举标签，`input` 中仍有边界描述类型。它们仅是原有公共数据定义；本管线只产生 `level_ordinal = 0`、`FrozenLowestSegment`，不存在 L1+ 执行器。
-
-## Verus 剥离方式
-
-来源：`/Users/gxj/.codex/worktrees/f2-combination-closure/dafny/f2-authority/verus-core`。按文件记录的 SHA256 见 [抽取收据](evidence/extraction-receipt.json)。
-
-采用 Verus 官方 `verus_builtin_macros 0.0.0-2026-09-20-0158` 的 `EraseAll` 语法转换，导出编译器执行层 token，再用 rustfmt 格式化。没有用正则猜测并删除嵌套的证明块。随后移除 `vstd` 导入、`Int` / `Nat` 的空 `View` 证明接口、`ExBigInt` 证明包装和两个只供证明的算术演示函数。原市场执行函数体保留；宏展开会移除内部注释，并可能留下无操作空块。
-
-剥离后的代码不携带形式化证明保证。这里交付的是可独立编译的既有执行实现，不是重新设计的算法，也没有借本次复制修复或优化原实现。
-
-## 本次验证及边界
-
-- 迁移原有 14 项行为测试，覆盖质量拒绝时状态保持、包含处理、分型、笔及分块一致性、镜像行情、线段两类识别、实际破坏条件、完整管线和错误边界回滚。
-- 对照素材来自本次执行原项目的 4 个既有 Dafny oracle（`run --no-verify`），共 249 条观测：质量 27、包含/分型 26、笔 62、线段 134。不是用抽取后的代码自生成期望值。
-- 测试保留原场景和断言，只把外部 oracle 调用与 Python 比较器替换为冻结文本和逐值断言。对照文件在 [tests/fixtures](tests/fixtures)，原始输出与命令收据在 [evidence](evidence)。
-- 未重做形式化证明，未执行 BTC/EUR 全年回放，未验证规则穷尽性。原实现的边界前提、效率和业务限制仍然存在。
-
-完整业务讨论和未决问题见上级 [缠论业务规则总表](../缠论业务规则总表.md)。其中 F2 规则用于后续独立开发，不表示本目录已经实现 F2。
+当前版本已在此独立库中简化数据类型和状态表示，不再是未经修改的执行层副本。参考 `chan-core-2026-final` 的原生类型、值枚举、模型注释方式及上述一字板特例；其余算法业务口径以本库冻结行为和 [规则总表](../缠论业务规则总表.md) 为准。

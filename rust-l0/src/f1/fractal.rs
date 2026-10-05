@@ -1,59 +1,54 @@
-//! Strict two-dimensional fractals and right-neighbor freeze confirmation.
+//! 严格二维分型：中间 K 线高低价均胜过左右邻居，右邻冻结后才确认。
 
 use crate::f1::inclusion::{absorb, combined_absorbs, fresh_combined, single_combined};
 use crate::f1::{
-    ConfirmedFractal, F1Delta, F1InputError, F1State, FractalKind, FractalPoint, copy_combined,
-    copy_point, raw_from_closed,
+    ConfirmedFractal, F1Delta, F1InputError, F1State, FractalKind, FractalPoint, raw_from_closed,
 };
 use crate::input::QualityBar;
-use crate::number::Nat;
 use crate::quality::is_valid_quality_bar;
 use std::cmp::Ordering;
 
-pub fn shape_at(bars: &Vec<crate::f1::CombinedBar>, center: usize) -> Option<FractalKind> {
+/// 检查中心及左右邻居；高低价均严格较高为顶，均严格较低为底，越界或等号不成型。
+pub fn shape_at(bars: &[crate::f1::CombinedBar], center: usize) -> Option<FractalKind> {
     if bars.len() < 3 || center == 0 || center >= bars.len() - 1 {
         return None;
     }
     let left = &bars[center - 1];
     let middle = &bars[center];
     let right = &bars[center + 1];
-    if middle.high.cmp_exact(&left.high) == Ordering::Greater
-        && middle.high.cmp_exact(&right.high) == Ordering::Greater
-        && middle.low.cmp_exact(&left.low) == Ordering::Greater
-        && middle.low.cmp_exact(&right.low) == Ordering::Greater
+    if middle.high > left.high
+        && middle.high > right.high
+        && middle.low > left.low
+        && middle.low > right.low
     {
         Some(FractalKind::Top)
-    } else if middle.high.cmp_exact(&left.high) == Ordering::Less
-        && middle.high.cmp_exact(&right.high) == Ordering::Less
-        && middle.low.cmp_exact(&left.low) == Ordering::Less
-        && middle.low.cmp_exact(&right.low) == Ordering::Less
+    } else if middle.high < left.high
+        && middle.high < right.high
+        && middle.low < left.low
+        && middle.low < right.low
     {
         Some(FractalKind::Bottom)
     } else {
         None
     }
 }
-pub fn tail_forming(bars: &Vec<crate::f1::CombinedBar>) -> Option<FractalPoint> {
+/// 只检测倒数第二根为中心的尾部分型；右邻仍活动，因此只返回候选。
+pub fn tail_forming(bars: &[crate::f1::CombinedBar]) -> Option<FractalPoint> {
     if bars.len() < 3 {
         return None;
     }
     let center = bars.len() - 2;
-    match shape_at(bars, center) {
-        Some(kind) => Some(FractalPoint {
-            kind,
-            center_index: Nat::from_u64(center as u64),
-            detected_known_at: bars[center + 1].known_at.clone(),
-        }),
-        None => None,
-    }
+    shape_at(bars, center).map(|kind| FractalPoint {
+        kind,
+        center_index: center,
+        detected_known_at: bars[center + 1].known_at,
+    })
 }
-fn copy_confirmed(value: &ConfirmedFractal) -> ConfirmedFractal {
-    ConfirmedFractal {
-        point: copy_point(&value.point),
-        confirmed_known_at: value.confirmed_known_at.clone(),
-    }
-}
-#[doc = " One call consumes one newly granted closed Bar; rejected calls keep state."]
+/// 消费一根新获准的闭合 Bar；先校验输入，拒绝时原样返回状态。
+#[expect(
+    clippy::result_large_err,
+    reason = "成功分支已经携带更大的状态与增量；错误按值归还状态，避免额外分配"
+)]
 pub fn advance_f1(
     mut state: F1State,
     bar: &QualityBar,
@@ -68,7 +63,7 @@ pub fn advance_f1(
         return Err((state, F1InputError::InvalidBar));
     }
     if let Some(last) = state.combined.last() {
-        match bar.slot.cmp_exact(&last.last_slot) {
+        match bar.slot.cmp(&last.last_slot) {
             Ordering::Greater => {}
             _ => return Err((state, F1InputError::OutOfOrder)),
         }
@@ -90,30 +85,21 @@ pub fn advance_f1(
             tail_updated = true;
         } else {
             let next = fresh_combined(last, &raw);
-            finalized = Some(copy_combined(last));
+            finalized = Some(*last);
             if let Some(point) = state.forming.take() {
                 let fixed = ConfirmedFractal {
                     point,
-                    confirmed_known_at: next.formed_known_at.clone(),
+                    confirmed_known_at: next.formed_known_at,
                 };
-                state.confirmed.push(copy_confirmed(&fixed));
+                state.confirmed.push(fixed);
                 confirmed = Some(fixed);
             }
             state.combined.push(next);
         }
     }
     state.forming = tail_forming(&state.combined);
-    let forming = match &state.forming {
-        Some(point) => Some(copy_point(point)),
-        None => None,
-    };
-    {};
-    {};
-    {};
-    {};
-    {};
-    {};
-    {};
+    let forming = state.forming;
+
     Ok((
         state,
         F1Delta {

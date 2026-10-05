@@ -1,0 +1,254 @@
+{
+  "scope": "rust-l0 native types, Chinese documentation, and directional limit-board inclusion",
+  "baseline_commit": "54c2ded6bd93596c8b3bda8ce8ecab853dbbf22b",
+  "started_at_utc": "2026-10-05T06:30:45.647407+00:00",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "commands": [
+    {
+      "name": "fmt",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "rust-l0/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "rust-l0/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "test",
+      "argv": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "rust-l0/Cargo.toml",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "summaries": [
+        "ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+        "ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "name": "build",
+      "argv": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "rust-l0/Cargo.toml"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "doc",
+      "argv": [
+        "cargo",
+        "doc",
+        "--offline",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "rust-l0/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "diff",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "rust-l0"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "input_sha256": {
+    "rust-l0/src/f1/feature.rs": "9683da363b5c780c9614f714b7c3aff437060c76d7dacc9800334ae6b89e03d0",
+    "rust-l0/src/f1/fractal.rs": "b16abd5e7638a363beae9f04f7563d01745e91074894ed3c57b1c4b7832afad2",
+    "rust-l0/src/f1/inclusion.rs": "acbfef71fbb52fa51971e4f5f8b692a0696ba66d963f4dcdf7b0ba384e4ac865",
+    "rust-l0/src/f1/mod.rs": "c5d81b61a0d2868e87b7b5bb8ee9dfa453020f1b33049f696ac5eda8308d116e",
+    "rust-l0/src/f1/morphology.rs": "867c0ed47fc55c9249f86cac23fff1485eb3c95cbe3be510a4cdf99096a4fc8b",
+    "rust-l0/src/f1/segment.rs": "b6ea20433d5015535b20ab37826e0b4f4bc340eefa649b39e84bf4f63c0324c3",
+    "rust-l0/src/f1/stroke.rs": "fc3f5f26e5a2df627ac65702692362f07cf9f89fded452373b2054f7e80e3551",
+    "rust-l0/src/input.rs": "b497d3d5de7a5dabc170129b121e7fb416cf73f33691997f81ac5cc611566e88",
+    "rust-l0/src/lib.rs": "fd24684eb949b6e657c70ee823e36c2894387b01d48f9909f3441a61f8c48864",
+    "rust-l0/src/lowest.rs": "820ac50568b55ca178b033a8a037451f98e27472ba836ad2f69d9d5630ff4b88",
+    "rust-l0/src/quality.rs": "b8c572e9d25465e356d239f68bbadd814ace8523a9a0f6f97729b3f9e57da732",
+    "rust-l0/tests/common/mod.rs": "e6ae604fe339f805090096476234d7d4e6ba5e8a709385a045ca41555b197cac",
+    "rust-l0/tests/f1_inclusion_fractal.rs": "53e81b260321e7fe39185f385c685130c0abae5e0903f909c96b2c9d90f12798",
+    "rust-l0/tests/f1_morphology.rs": "a53b717dc2fa63e0c9f66145410f02e1c4e9d80f5e185fecf2ef5dea43030cc5",
+    "rust-l0/tests/f1_segment.rs": "a49b0bae403355a4c5c2139789c983f4defb102f99ca2d58f95f5bde8d4ef064",
+    "rust-l0/tests/fixtures/f1_inclusion_fractal.txt": "410032bde62b6086881079944ac4238e36f85160a6b2f716df4bfd2b2e85a558",
+    "rust-l0/tests/fixtures/f1_morphology.txt": "2ac1fad6c1a436a04bd96c2714f857b3f0d9727a833a2760fcc473a13000eaac",
+    "rust-l0/tests/fixtures/f1_segment.txt": "2a8509f1fbabdc5d874df5e761924d49ee049050270d1656e4f2b8aacad16863",
+    "rust-l0/tests/fixtures/pipeline_e2e.txt": "bcdbf58c228bf902d3453599a534024aae757072b06818cd0a02f2242de9b9a6",
+    "rust-l0/tests/fixtures/quality.txt": "61c46fef2ca09ce95aa453c09a96eb21f38f758af803727b12828d88e7cb8c08",
+    "rust-l0/tests/limit_board_e2e.rs": "a41d2493a9fd2a9df1c3ea96a7683cb1435f40c87b91bc5a3acd5521ac64d007",
+    "rust-l0/tests/pipeline_e2e.rs": "499eb5d91a1a4336d1a5cb706bffa028a4721c8e58ec571dfa1d909453f1a24d",
+    "rust-l0/tests/quality.rs": "269356d836af765a46e2a36e4ab1f50a043bfe0955a62111972e6a0988a3595e",
+    "rust-l0/Cargo.toml": "90cbe8d649cf52450828742a9bd2092967116c4649914ff30240845aee117c62",
+    "rust-l0/Cargo.lock": "c530db6030c16e3e6518a6be917210c5c106357b08a59535bc3518706e21ef9f",
+    "rust-l0/README.md": "efcce0926b3ce0295858ab58fb8631b22213a42be93491a46f0201275938d5f3"
+  },
+  "historical_fixtures": [
+    {
+      "path": "rust-l0/tests/fixtures/quality.txt",
+      "unchanged": true,
+      "sha256": "61c46fef2ca09ce95aa453c09a96eb21f38f758af803727b12828d88e7cb8c08",
+      "original_observations": 27
+    },
+    {
+      "path": "rust-l0/tests/fixtures/f1_inclusion_fractal.txt",
+      "unchanged": true,
+      "sha256": "410032bde62b6086881079944ac4238e36f85160a6b2f716df4bfd2b2e85a558",
+      "original_observations": 26
+    },
+    {
+      "path": "rust-l0/tests/fixtures/f1_morphology.txt",
+      "unchanged": true,
+      "sha256": "2ac1fad6c1a436a04bd96c2714f857b3f0d9727a833a2760fcc473a13000eaac",
+      "original_observations": 62
+    },
+    {
+      "path": "rust-l0/tests/fixtures/f1_segment.txt",
+      "unchanged": true,
+      "sha256": "2a8509f1fbabdc5d874df5e761924d49ee049050270d1656e4f2b8aacad16863",
+      "original_observations": 134
+    }
+  ],
+  "frozen_observations": {
+    "original": 249,
+    "compared": 248,
+    "excluded": [
+      {
+        "case": "q20",
+        "reason": "arbitrary-precision values exceed the new u64 and DateTime contract"
+      }
+    ],
+    "time_adapter": "Only expected historical Unix-second values are converted to RFC 3339; actual output uses DateTime::to_rfc3339."
+  },
+  "regression_before_fix": {
+    "command": "cargo test --offline --locked --release --manifest-path rust-l0/Cargo.toml --test limit_board_e2e --no-fail-fast",
+    "exit_code": 101,
+    "passed": 0,
+    "failed": 2,
+    "source_sha256": "0acc0b7a9bc8b7cff370492b170fa739dab52232716501041871782e72408712",
+    "test_sha256_before_rustfmt": "1b59b658340fa36a9c452ec699986f19ba85626364812f9d8d4d6c968a8a3b9c",
+    "observed": "Upward [10,20] plus a flat Bar at 20 became [20,20]; expected [10,20]. Multi-segment injection likewise changed the low price and its source slot."
+  },
+  "limit_board_reference": {
+    "repository": "/Users/gxj/core/chan-core-2026-final",
+    "commit": "758953cf87663140425c98d35e9ed0d7c0ceeaf8",
+    "function": "crates/chan-engine/src/kline.rs::merge_klu_into_klc",
+    "python_function": "pychan/Combiner/KLine_Combiner.py::try_add",
+    "boundary_cases": 12,
+    "full_pipeline": {
+      "mirrors": 2,
+      "base_bars_per_mirror": 128,
+      "inserted_flat_bars_per_mirror": 256,
+      "total_bars_with_insertions": 768,
+      "completed_lowest_movements": 14
+    },
+    "scope": "Source-derived inclusion exception and local E2E; not a runtime differential replay of the reference engine. Earliest equal-price source remains the local contract."
+  },
+  "pipeline_baseline": {
+    "captured_from": "54c2ded6bd93596c8b3bda8ce8ecab853dbbf22b",
+    "fixture": "rust-l0/tests/fixtures/pipeline_e2e.txt",
+    "runs": [
+      "integer-prices",
+      "fractional-prices-pre-epoch-nanosecond-times"
+    ],
+    "bars_per_run": 256,
+    "completed_lowest_movements_per_run": 14,
+    "scope": "Each run includes both price mirrors, active updates, closing updates, idempotent repeats, blocked append-over-active events, and frozen-prefix checks."
+  },
+  "artifacts": [
+    {
+      "path": "rust-l0/target/e2e/limit-board-boundaries.txt",
+      "sha256": "6b9e3b37bc128aee3f9bf8a0b64a9a21289b9ab50e8f221b944d8a479eea12bf",
+      "lines": 48
+    },
+    {
+      "path": "rust-l0/target/e2e/limit-board-pipeline.txt",
+      "sha256": "abeddd4105923202d35440f00a688ee77f76dc0bc1afe36e02fe0f678c8895aa",
+      "lines": 784
+    },
+    {
+      "path": "rust-l0/target/e2e/native-limits.txt",
+      "sha256": "16ad14e4611cbf1f42d9d6d4e4959969118db2b7139f767015504bce0c1d1f88",
+      "lines": 18
+    },
+    {
+      "path": "rust-l0/target/e2e/pipeline-fractional-pre-epoch.txt",
+      "sha256": "1b613bc819d3e660594b25d4408606f7230f8a76fbbc68cdb060acac49cc4744",
+      "lines": 820
+    },
+    {
+      "path": "rust-l0/target/e2e/pipeline-trace.txt",
+      "sha256": "5794846f364c3a3b1b2f083bc8433983bd7edef7b051200f125f923726e6e014",
+      "lines": 820
+    }
+  ],
+  "review": {
+    "method": "Self-review of full scoped diff and follow-up changes",
+    "remaining_in_scope_findings": [],
+    "parallel_changes_excluded": [
+      "README.md",
+      "CONTINUITY.md",
+      "docs/",
+      "缠论业务规则总表.md"
+    ]
+  },
+  "not_verified": [
+    "Fresh Dafny or Verus proofs",
+    "BTC/EUR full-year datasets",
+    "Performance benchmarks",
+    "F2 and higher layers",
+    "Runtime differential comparison against chan-core-2026-final"
+  ],
+  "known_compatibility_changes": [
+    "Public numeric, temporal, L0 and stroke-state APIs changed; callers must migrate.",
+    "f64 is finite-precision; arbitrary-precision input and observation q20 are outside the current contract.",
+    "Directional extreme flat-Bar inclusion intentionally differs from the old general max/max or min/min rule."
+  ],
+  "completed_at_utc": "2026-10-05T06:30:50.197287+00:00",
+  "all_checks_passed": true
+}

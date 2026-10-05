@@ -1,3 +1,6 @@
+mod common;
+
+use chrono::{DateTime, TimeDelta, Utc};
 // Migrated existing behavioral tests; expected observations captured from the original oracle.
 use chan_l0::f1::feature::{FeatureElement, PriceInterval, SegmentDirection, normalized_push};
 use chan_l0::f1::segment::{
@@ -8,13 +11,12 @@ use chan_l0::input::{BarStreamIdentity, MarketDirection, QualityBar};
 use chan_l0::lowest::{
     CompleteBoundary, F1PipelineState, PipelineError, advance_pipeline, new_pipeline_state,
 };
-use chan_l0::number::{Int, Nat};
 
-fn nat(value: u64) -> Nat {
-    Nat::from_u64(value)
+fn nat(value: u64) -> DateTime<Utc> {
+    DateTime::from_timestamp(value as i64, 0).unwrap()
 }
-fn int(value: i64) -> Int {
-    Int::from_i64(value)
+fn int(value: i64) -> f64 {
+    value as f64
 }
 fn element(mirror: bool, source: usize, low: i64, high: i64) -> FeatureElement {
     let (low, high) = if mirror { (-high, -low) } else { (low, high) };
@@ -62,13 +64,13 @@ fn render(name: &str, step: usize, outcome: &ProbeStep) -> String {
             match &probe.stage {
                 ProbeStage::SeekingPrimary => text.push('P'),
                 ProbeStage::SeekingActualBreak { candidate_known_at } => {
-                    text.push_str(&format!("A{}", candidate_known_at.decimal()))
+                    text.push_str(&format!("A{}", candidate_known_at.to_rfc3339()))
                 }
                 ProbeStage::SeekingSecond {
                     candidate_known_at,
                     actual_break,
                 } => {
-                    text.push_str(&format!("S{}", candidate_known_at.decimal()));
+                    text.push_str(&format!("S{}", candidate_known_at.to_rfc3339()));
                     match actual_break {
                         Some(value) => text.push_str(&format!(
                             "E{},{}",
@@ -96,8 +98,8 @@ fn render(name: &str, step: usize, outcome: &ProbeStep) -> String {
             text.push_str(&format!(
                 "R{},{},{},{}|E{},{}",
                 value.split_stroke_index,
-                value.candidate_known_at.decimal(),
-                value.confirmed_known_at.decimal(),
+                value.candidate_known_at.to_rfc3339(),
+                value.confirmed_known_at.to_rfc3339(),
                 reason,
                 value.actual_break.center_source_stroke_index,
                 value.actual_break.observed_stroke_index
@@ -107,10 +109,7 @@ fn render(name: &str, step: usize, outcome: &ProbeStep) -> String {
     text
 }
 fn oracle_lines() -> Vec<String> {
-    include_str!("fixtures/f1_segment.txt")
-        .lines()
-        .map(str::to_owned)
-        .collect()
+    common::oracle_lines(include_str!("fixtures/f1_segment.txt"), "segment")
 }
 fn compare_with_runner(expected: &[String], actual: &[String]) {
     assert_eq!(expected, actual, "frozen executable oracle mismatch");
@@ -186,8 +185,8 @@ fn feature_text(value: &FeatureElement) -> String {
         "({},{},{},{},",
         value.source_stroke_index,
         value.extreme_source_stroke_index,
-        value.interval.low.decimal(),
-        value.interval.high.decimal()
+        value.interval.low,
+        value.interval.high
     );
     for source in &value.source_stroke_indices {
         text.push_str(&format!("{source},"));
@@ -286,13 +285,14 @@ fn fixed_text(name: &str, step: usize, state: &F1PipelineState) -> String {
             segment.begin_stroke_index,
             segment.end_stroke_index,
             direction_code(&segment.direction),
-            segment.start_price.decimal(),
-            segment.end_price.decimal(),
-            segment.times.occurred_at.decimal(),
-            segment.times.candidate_known_at.decimal(),
-            segment.times.confirmed_at.decimal(),
-            segment.price_interval.low.decimal(),
-            segment.price_interval.high.decimal(),
+            segment.start_price,
+            segment.end_price,
+            // 旧 occurred_at 与 candidate_known_at 始终相同。
+            segment.times.candidate_known_at.to_rfc3339(),
+            segment.times.candidate_known_at.to_rfc3339(),
+            segment.times.confirmed_at.to_rfc3339(),
+            segment.price_interval.low,
+            segment.price_interval.high,
             reason
         ));
         for element in &segment.elements {
@@ -300,27 +300,24 @@ fn fixed_text(name: &str, step: usize, state: &F1PipelineState) -> String {
         }
         text.push('}');
     }
-    text.push_str(&format!("|M{}", state.lowest.completed.len()));
-    for movement in &state.lowest.completed {
-        let direction = match movement.key.direction {
-            MarketDirection::Upward => 0,
-            MarketDirection::Downward => 1,
-            MarketDirection::NoNetDisplacement => 2,
-        };
+    text.push_str(&format!("|M{}", state.lowest_movements.len()));
+    // 兼容冻结 oracle 的文本格式：层级恒为 0，直接子材料恒为空。
+    for movement in &state.lowest_movements {
+        let direction = direction_code(&movement.direction);
         text.push_str(&format!(
             "{{{},{},{},{},{},{},{},{},{},{},{},{}}}",
-            movement.key.level_ordinal.decimal(),
-            movement.key.start_endpoint.market_order.decimal(),
-            movement.key.start_endpoint.open_time.decimal(),
-            movement.key.start_endpoint.price.decimal(),
-            movement.key.end_endpoint.market_order.decimal(),
-            movement.key.end_endpoint.open_time.decimal(),
-            movement.key.end_endpoint.price.decimal(),
+            0,
+            movement.start_endpoint.market_order,
+            movement.start_endpoint.open_time.to_rfc3339(),
+            movement.start_endpoint.price,
+            movement.end_endpoint.market_order,
+            movement.end_endpoint.open_time.to_rfc3339(),
+            movement.end_endpoint.price,
             direction,
-            movement.key.full_range.low.decimal(),
-            movement.key.full_range.high.decimal(),
-            movement.known_at.decimal(),
-            movement.direct_materials.len()
+            movement.full_range.low,
+            movement.full_range.high,
+            movement.known_at.to_rfc3339(),
+            0
         ));
     }
     text.push_str("|A");
@@ -332,7 +329,7 @@ fn fixed_text(name: &str, step: usize, state: &F1PipelineState) -> String {
             direction_code(&active.direction),
             active.primary.len(),
             active.probes.len(),
-            active.known_at.decimal()
+            active.known_at.to_rfc3339()
         )),
     }
     text.push_str(&format!("|C{}", state.segment.next_stroke_index));
@@ -356,10 +353,10 @@ fn fixed_history_reaches_segment_owner() {
         let stream = BarStreamIdentity {
             market: "SYNTHETIC".into(),
             instrument: "W31_READY".into(),
-            timeframe: nat(1),
+            timeframe: TimeDelta::seconds(1),
         };
         let boundary = CompleteBoundary {
-            root_point: nat(1),
+            root_point: 1,
             initial_inclusion_direction: if mirror {
                 MarketDirection::Downward
             } else {
@@ -381,14 +378,14 @@ fn fixed_history_reaches_segment_owner() {
                 stream: BarStreamIdentity {
                     market: "SYNTHETIC".into(),
                     instrument: "W31_READY".into(),
-                    timeframe: nat(1),
+                    timeframe: TimeDelta::seconds(1),
                 },
                 slot: nat(index as u64),
                 open: int(low),
                 high: int(high),
                 low: int(low),
                 close: int(low),
-                volume: nat(1),
+                volume: 1,
                 turnover: None,
                 known_at: nat(index as u64 + 1),
                 closed: true,
@@ -402,8 +399,7 @@ fn fixed_history_reaches_segment_owner() {
                 .map(|s| format!("{s:?}"))
                 .collect();
             let movement_rows: Vec<_> = next
-                .lowest
-                .completed
+                .lowest_movements
                 .iter()
                 .map(|m| format!("{m:?}"))
                 .collect();
@@ -421,15 +417,8 @@ fn fixed_history_reaches_segment_owner() {
                 assert_ne!(
                     segment
                         .times
-                        .occurred_at
-                        .cmp_exact(&segment.times.confirmed_at),
-                    std::cmp::Ordering::Greater
-                );
-                assert_ne!(
-                    segment
-                        .times
                         .candidate_known_at
-                        .cmp_exact(&segment.times.confirmed_at),
+                        .cmp(&segment.times.confirmed_at),
                     std::cmp::Ordering::Greater
                 );
                 for element in &segment.elements {
@@ -487,7 +476,7 @@ fn fixed_history_reaches_segment_owner() {
         }
         assert_eq!(state.morphology.stroke.confirmed.len(), 6);
         assert_eq!(published, 1);
-        assert_eq!(state.segment.completed.len(), state.lowest.completed.len());
+        assert_eq!(state.segment.completed.len(), state.lowest_movements.len());
     }
     assert!(
         actual
@@ -511,10 +500,10 @@ fn rejected_lowest_boundary_preserves_segment_for_retry() {
     let stream = BarStreamIdentity {
         market: "SYNTHETIC".into(),
         instrument: "W31_READY".into(),
-        timeframe: nat(1),
+        timeframe: TimeDelta::seconds(1),
     };
     let boundary = CompleteBoundary {
-        root_point: nat(999),
+        root_point: 999,
         initial_inclusion_direction: MarketDirection::Upward,
         known_at: nat(1),
     };
@@ -525,14 +514,14 @@ fn rejected_lowest_boundary_preserves_segment_for_retry() {
             stream: BarStreamIdentity {
                 market: "SYNTHETIC".into(),
                 instrument: "W31_READY".into(),
-                timeframe: nat(1),
+                timeframe: TimeDelta::seconds(1),
             },
             slot: nat(index as u64),
             open: int(price),
             high: int(price + 1),
             low: int(price),
             close: int(price),
-            volume: nat(1),
+            volume: 1,
             turnover: None,
             known_at: nat(index as u64 + 1),
             closed: true,
@@ -545,7 +534,7 @@ fn rejected_lowest_boundary_preserves_segment_for_retry() {
             }
             Err((preserved, PipelineError::LowestMovementInvalid)) => {
                 assert_eq!(format!("{:?}", preserved.segment), before);
-                assert!(preserved.lowest.completed.is_empty());
+                assert!(preserved.lowest_movements.is_empty());
                 rejected = true;
                 break;
             }

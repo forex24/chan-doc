@@ -1,121 +1,81 @@
-//! Executable F1StrokeExecution event reduction over T03's confirmed point ledger.
+//! 在已确认分型账本上增量构建笔；同类极值延伸，合格的反向笔确认前笔。
 
 use crate::f1::{CombinedBar, ConfirmedFractal, F1State, FractalKind, FractalPoint};
-use crate::number::{Int, Nat};
-use std::cmp::Ordering;
+use chrono::{DateTime, Utc};
 
-#[derive(Debug, PartialEq, Eq)]
+/// 笔的分型几何下标；三个下标都指向 F1State.confirmed。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct StrokeGeometry {
+    /// 起点分型下标。
     pub begin_index: usize,
+    /// 首次成笔时的终点分型下标，后续延伸不修改它。
     pub formation_end_index: usize,
+    /// 当前终点分型下标，可因同类更强极值而后移。
     pub end_index: usize,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 已成形但尚未被反向笔确认的活动笔。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TentativeStroke {
-    pub begin_point_index: usize,
+    /// 初始与当前成笔几何。
     pub geometry: StrokeGeometry,
-    pub formed_known_at: Nat,
-    pub current_known_at: Nat,
+    /// 首次成笔所依赖 K 线的最大获知时间。
+    pub formed_known_at: DateTime<Utc>,
+    /// 考虑端点延伸后的最大获知时间。
+    pub current_known_at: DateTime<Utc>,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 被合格反向笔确认后冻结的笔。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConfirmedStroke {
-    pub begin_point_index: usize,
+    /// 冻结时的成笔几何。
     pub geometry: StrokeGeometry,
-    pub formed_known_at: Nat,
-    pub current_known_at: Nat,
+    /// 首次成笔获知时间。
+    pub formed_known_at: DateTime<Utc>,
+    /// 冻结前最后一次端点更新的获知时间。
+    pub current_known_at: DateTime<Utc>,
+    /// 使反向笔成立的确认分型下标。
     pub confirmed_by_point_index: usize,
-    pub confirmed_known_at: Nat,
+    /// 前笔可被发布的确认时间。
+    pub confirmed_known_at: DateTime<Utc>,
 }
-#[derive(Debug, PartialEq, Eq)]
-pub struct PendingReverse {
-    pub predecessor: TentativeStroke,
-    pub confirming_point_index: usize,
-}
-#[derive(Debug, PartialEq, Eq)]
+/// 成笔阶段；反向笔与前笔确认在同一次调用内完成。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StrokePhase {
+    /// 尚无可用确认分型。
     AwaitingFirstPoint,
+    /// 已有锚点，等待合格的异类分型。
     SeekingFirstStroke {
+        /// 首笔起点候选在确认分型账本中的下标。
         anchor_point_index: usize,
     },
+    /// 正在延伸已成形的活动笔。
     BuildingStroke {
+        /// 唯一活动笔。
         active: TentativeStroke,
-        pending: Option<PendingReverse>,
     },
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 笔的增量状态和不可改写的确认前缀。
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StrokeState {
+    /// 按发布顺序排列的已确认笔。
     pub confirmed: Vec<ConfirmedStroke>,
+    /// 当前成笔阶段。
     pub phase: StrokePhase,
-    pub detected_point_count: usize,
-    pub confirmed_point_count: usize,
+    /// 已经处理的确认分型数，也是下一次待消费的分型下标。
+    pub processed_point_count: usize,
 }
+/// 建立等待首个确认分型的笔状态。
 pub fn new_stroke_state() -> StrokeState {
     StrokeState {
         confirmed: Vec::new(),
         phase: StrokePhase::AwaitingFirstPoint,
-        detected_point_count: 0,
-        confirmed_point_count: 0,
+        processed_point_count: 0,
     }
 }
-fn copy_geometry(value: &StrokeGeometry) -> StrokeGeometry {
-    StrokeGeometry {
-        begin_index: value.begin_index,
-        formation_end_index: value.formation_end_index,
-        end_index: value.end_index,
-    }
+/// 下标直接寻址，越界时返回 None；不再构造大整数并线性扫描数组。
+pub(crate) fn center_position(bars: &[CombinedBar], point: &FractalPoint) -> Option<usize> {
+    (point.center_index < bars.len()).then_some(point.center_index)
 }
-pub fn copy_tentative(value: &TentativeStroke) -> TentativeStroke {
-    TentativeStroke {
-        begin_point_index: value.begin_point_index,
-        geometry: copy_geometry(&value.geometry),
-        formed_known_at: value.formed_known_at.clone(),
-        current_known_at: value.current_known_at.clone(),
-    }
-}
-pub fn copy_confirmed_stroke(value: &ConfirmedStroke) -> ConfirmedStroke {
-    ConfirmedStroke {
-        begin_point_index: value.begin_point_index,
-        geometry: copy_geometry(&value.geometry),
-        formed_known_at: value.formed_known_at.clone(),
-        current_known_at: value.current_known_at.clone(),
-        confirmed_by_point_index: value.confirmed_by_point_index,
-        confirmed_known_at: value.confirmed_known_at.clone(),
-    }
-}
-fn greater(a: &Int, b: &Int) -> bool {
-    a.cmp_exact(b) == Ordering::Greater
-}
-fn less(a: &Int, b: &Int) -> bool {
-    a.cmp_exact(b) == Ordering::Less
-}
-fn maximum(a: &Nat, b: &Nat) -> Nat {
-    match a.cmp_exact(b) {
-        Ordering::Less => b.clone(),
-        _ => a.clone(),
-    }
-}
-#[doc = " A point index is a semantic nat; only indexes actually in this ledger resolve."]
-pub(crate) fn center_position(bars: &Vec<CombinedBar>, point: &FractalPoint) -> Option<usize> {
-    let mut index = 0usize;
-    while index < bars.len() {
-        let target = Nat::from_u64(index as u64);
-        match point.center_index.cmp_exact(&target) {
-            Ordering::Equal => {
-                {};
-                return Some(index);
-            }
-            _ => {}
-        }
-        index += 1;
-    }
-    None
-}
-fn kind_matches(a: &FractalKind, b: &FractalKind) -> bool {
-    match (a, b) {
-        (FractalKind::Top, FractalKind::Top) | (FractalKind::Bottom, FractalKind::Bottom) => true,
-        _ => false,
-    }
-}
+/// 比较同类分型的端点极值；必须严格更高或更低，同价不后移。
 fn strictly_more_extreme(f1: &F1State, candidate: &FractalPoint, current: &FractalPoint) -> bool {
     let Some(candidate_center) = center_position(&f1.combined, candidate) else {
         return false;
@@ -132,31 +92,22 @@ fn strictly_more_extreme(f1: &F1State, candidate: &FractalPoint, current: &Fract
         return false;
     }
     match &candidate.kind {
-        FractalKind::Top => greater(
-            &f1.combined[candidate_center].high,
-            &f1.combined[current_center].high,
-        ),
-        FractalKind::Bottom => less(
-            &f1.combined[candidate_center].low,
-            &f1.combined[current_center].low,
-        ),
+        FractalKind::Top => f1.combined[candidate_center].high > f1.combined[current_center].high,
+        FractalKind::Bottom => f1.combined[candidate_center].low < f1.combined[current_center].low,
     }
 }
+/// 验证异类分型、中心间距至少 4、三 K 邻域严格极值以及内部 K 线不越过终点。
 fn can_form_stroke(f1: &F1State, begin_index: usize, end_index: usize) -> Option<(usize, usize)> {
     if begin_index >= end_index || end_index >= f1.confirmed.len() {
         return None;
     }
     let begin = &f1.confirmed[begin_index].point;
     let end = &f1.confirmed[end_index].point;
-    if kind_matches(&begin.kind, &end.kind) {
+    if begin.kind == end.kind {
         return None;
     }
-    let Some(begin_center) = center_position(&f1.combined, begin) else {
-        return None;
-    };
-    let Some(end_center) = center_position(&f1.combined, end) else {
-        return None;
-    };
+    let begin_center = center_position(&f1.combined, begin)?;
+    let end_center = center_position(&f1.combined, end)?;
     if f1.combined.len() < 3
         || begin_center == 0
         || end_center < begin_center
@@ -168,24 +119,24 @@ fn can_form_stroke(f1: &F1State, begin_index: usize, end_index: usize) -> Option
     let bars = &f1.combined;
     let strict_patterns = match &begin.kind {
         FractalKind::Bottom => {
-            let begin_low = &bars[begin_center].low;
-            let end_high = &bars[end_center].high;
-            less(begin_low, &bars[end_center - 1].low)
-                && less(begin_low, &bars[end_center].low)
-                && less(begin_low, &bars[end_center + 1].low)
-                && greater(end_high, &bars[begin_center - 1].high)
-                && greater(end_high, &bars[begin_center].high)
-                && greater(end_high, &bars[begin_center + 1].high)
+            let begin_low = bars[begin_center].low;
+            let end_high = bars[end_center].high;
+            begin_low < bars[end_center - 1].low
+                && begin_low < bars[end_center].low
+                && begin_low < bars[end_center + 1].low
+                && end_high > bars[begin_center - 1].high
+                && end_high > bars[begin_center].high
+                && end_high > bars[begin_center + 1].high
         }
         FractalKind::Top => {
-            let begin_high = &bars[begin_center].high;
-            let end_low = &bars[end_center].low;
-            greater(begin_high, &bars[end_center - 1].high)
-                && greater(begin_high, &bars[end_center].high)
-                && greater(begin_high, &bars[end_center + 1].high)
-                && less(end_low, &bars[begin_center - 1].low)
-                && less(end_low, &bars[begin_center].low)
-                && less(end_low, &bars[begin_center + 1].low)
+            let begin_high = bars[begin_center].high;
+            let end_low = bars[end_center].low;
+            begin_high > bars[end_center - 1].high
+                && begin_high > bars[end_center].high
+                && begin_high > bars[end_center + 1].high
+                && end_low < bars[begin_center - 1].low
+                && end_low < bars[begin_center].low
+                && end_low < bars[begin_center + 1].low
         }
     };
     if !strict_patterns {
@@ -194,10 +145,8 @@ fn can_form_stroke(f1: &F1State, begin_index: usize, end_index: usize) -> Option
     let mut index = begin_center + 1;
     while index < end_center {
         let clean = match &begin.kind {
-            FractalKind::Bottom => {
-                bars[index].high.cmp_exact(&bars[end_center].high) != Ordering::Greater
-            }
-            FractalKind::Top => bars[index].low.cmp_exact(&bars[end_center].low) != Ordering::Less,
+            FractalKind::Bottom => bars[index].high <= bars[end_center].high,
+            FractalKind::Top => bars[index].low >= bars[end_center].low,
         };
         if !clean {
             return None;
@@ -206,14 +155,15 @@ fn can_form_stroke(f1: &F1State, begin_index: usize, end_index: usize) -> Option
     }
     Some((begin_center, end_center))
 }
-fn formation_known_at(f1: &F1State, begin_center: usize, end_center: usize) -> Nat {
-    let mut known_at = Nat::zero();
+/// 取起点左邻至终点右邻所需合并 K 线的最大获知时间。
+fn formation_known_at(f1: &F1State, begin_center: usize, end_center: usize) -> DateTime<Utc> {
+    let mut known_at = DateTime::<Utc>::MIN_UTC;
     let mut index = begin_center - 1;
     loop {
         if index >= f1.combined.len() {
             break;
         }
-        known_at = maximum(&known_at, &f1.combined[index].known_at);
+        known_at = known_at.max(f1.combined[index].known_at);
         if index > end_center {
             break;
         }
@@ -221,6 +171,7 @@ fn formation_known_at(f1: &F1State, begin_center: usize, end_center: usize) -> N
     }
     known_at
 }
+/// 建立活动笔，同时固定首次成笔终点及形成时间。
 fn new_tentative(
     f1: &F1State,
     begin_index: usize,
@@ -230,156 +181,121 @@ fn new_tentative(
 ) -> TentativeStroke {
     let formed = formation_known_at(f1, begin_center, end_center);
     TentativeStroke {
-        begin_point_index: begin_index,
         geometry: StrokeGeometry {
             begin_index,
             formation_end_index: end_index,
             end_index,
         },
-        formed_known_at: formed.clone(),
+        formed_known_at: formed,
         current_known_at: formed,
     }
 }
+/// 以严格更强的同类分型延伸活动终点，保留初始成笔几何。
 fn replace_active(
     active: TentativeStroke,
     point_index: usize,
-    detected_known_at: &Nat,
+    detected_known_at: &DateTime<Utc>,
 ) -> TentativeStroke {
     TentativeStroke {
-        begin_point_index: active.begin_point_index,
         geometry: StrokeGeometry {
             begin_index: active.geometry.begin_index,
             formation_end_index: active.geometry.formation_end_index,
             end_index: point_index,
         },
         formed_known_at: active.formed_known_at,
-        current_known_at: maximum(&active.current_known_at, detected_known_at),
+        current_known_at: active.current_known_at.max(*detected_known_at),
     }
 }
-fn freeze(pending: PendingReverse, confirmed_known_at: &Nat) -> ConfirmedStroke {
-    let predecessor = pending.predecessor;
+/// 反向笔成立时冻结前笔；确认时间不得早于前笔最后一次端点延伸。
+fn freeze(
+    predecessor: TentativeStroke,
+    confirmed_by_point_index: usize,
+    confirmed_known_at: &DateTime<Utc>,
+) -> ConfirmedStroke {
     ConfirmedStroke {
-        begin_point_index: predecessor.begin_point_index,
         geometry: predecessor.geometry,
         formed_known_at: predecessor.formed_known_at,
-        current_known_at: predecessor.current_known_at.clone(),
-        confirmed_by_point_index: pending.confirming_point_index,
-        confirmed_known_at: maximum(&predecessor.current_known_at, confirmed_known_at),
+        current_known_at: predecessor.current_known_at,
+        confirmed_by_point_index,
+        confirmed_known_at: predecessor.current_known_at.max(*confirmed_known_at),
     }
 }
-#[doc = " T03 commits a formerly forming point only when its right neighbor freezes."]
-#[doc = " Detection and confirmation are then the same closed-Bar transaction."]
+
+/// 消费下一个已确认分型，先推进活动笔，再在同一事务内发布前笔。
+///
+/// 只有符合成笔条件的反向笔才能确认前笔。中间的待确认反向状态不跨调用保存，
+/// 因此只需一个已处理分型计数；分型不匹配或锚点无效时原样返回状态。
 pub fn accept_confirmed_point(
     mut state: StrokeState,
     f1: &F1State,
     point: &ConfirmedFractal,
 ) -> (StrokeState, Option<ConfirmedStroke>) {
-    let index = state.detected_point_count;
-    if index != state.confirmed_point_count
-        || index >= f1.confirmed.len()
-        || f1.confirmed[index] != *point
+    let index = state.processed_point_count;
+    if f1.confirmed.get(index) != Some(point) {
+        return (state, None);
+    }
+    if let StrokePhase::SeekingFirstStroke { anchor_point_index } = &state.phase
+        && *anchor_point_index >= index
     {
         return (state, None);
     }
-    if let StrokePhase::SeekingFirstStroke { anchor_point_index } = &state.phase {
-        if *anchor_point_index >= index {
-            return (state, None);
-        }
-    }
-    let phase = state.phase;
-    state.phase = match phase {
+    let mut published = None;
+    state.phase = match state.phase {
         StrokePhase::AwaitingFirstPoint => StrokePhase::SeekingFirstStroke {
             anchor_point_index: index,
         },
         StrokePhase::SeekingFirstStroke { anchor_point_index } => {
             let anchor = &f1.confirmed[anchor_point_index].point;
-            if kind_matches(&anchor.kind, &point.point.kind) {
-                if strictly_more_extreme(f1, &point.point, anchor) {
-                    StrokePhase::SeekingFirstStroke {
-                        anchor_point_index: index,
-                    }
-                } else {
-                    StrokePhase::SeekingFirstStroke { anchor_point_index }
+            if anchor.kind == point.point.kind {
+                StrokePhase::SeekingFirstStroke {
+                    anchor_point_index: if strictly_more_extreme(f1, &point.point, anchor) {
+                        index
+                    } else {
+                        anchor_point_index
+                    },
+                }
+            } else if let Some((begin_center, end_center)) =
+                can_form_stroke(f1, anchor_point_index, index)
+            {
+                StrokePhase::BuildingStroke {
+                    active: new_tentative(f1, anchor_point_index, index, begin_center, end_center),
                 }
             } else {
-                match can_form_stroke(f1, anchor_point_index, index) {
-                    Some((begin_center, end_center)) => StrokePhase::BuildingStroke {
-                        active: new_tentative(
-                            f1,
-                            anchor_point_index,
-                            index,
-                            begin_center,
-                            end_center,
-                        ),
-                        pending: None,
-                    },
-                    None => StrokePhase::SeekingFirstStroke { anchor_point_index },
-                }
+                StrokePhase::SeekingFirstStroke { anchor_point_index }
             }
         }
-        StrokePhase::BuildingStroke { active, pending } => {
-            if pending.is_some() || active.geometry.end_index >= index {
-                StrokePhase::BuildingStroke { active, pending }
+        StrokePhase::BuildingStroke { active } => {
+            if active.geometry.end_index >= index {
+                StrokePhase::BuildingStroke { active }
             } else {
                 let current = &f1.confirmed[active.geometry.end_index].point;
-                if kind_matches(&current.kind, &point.point.kind) {
-                    if strictly_more_extreme(f1, &point.point, current) {
-                        StrokePhase::BuildingStroke {
-                            active: replace_active(active, index, &point.point.detected_known_at),
-                            pending: None,
-                        }
+                if current.kind == point.point.kind {
+                    let active = if strictly_more_extreme(f1, &point.point, current) {
+                        replace_active(active, index, &point.point.detected_known_at)
                     } else {
-                        StrokePhase::BuildingStroke {
-                            active,
-                            pending: None,
-                        }
-                    }
+                        active
+                    };
+                    StrokePhase::BuildingStroke { active }
+                } else if let Some((begin_center, end_center)) =
+                    can_form_stroke(f1, active.geometry.end_index, index)
+                {
+                    let next = new_tentative(
+                        f1,
+                        active.geometry.end_index,
+                        index,
+                        begin_center,
+                        end_center,
+                    );
+                    let confirmed = freeze(active, index, &point.confirmed_known_at);
+                    state.confirmed.push(confirmed);
+                    published = Some(confirmed);
+                    StrokePhase::BuildingStroke { active: next }
                 } else {
-                    match can_form_stroke(f1, active.geometry.end_index, index) {
-                        Some((begin_center, end_center)) => {
-                            let next = new_tentative(
-                                f1,
-                                active.geometry.end_index,
-                                index,
-                                begin_center,
-                                end_center,
-                            );
-                            StrokePhase::BuildingStroke {
-                                active: next,
-                                pending: Some(PendingReverse {
-                                    predecessor: copy_tentative(&active),
-                                    confirming_point_index: index,
-                                }),
-                            }
-                        }
-                        None => StrokePhase::BuildingStroke {
-                            active,
-                            pending: None,
-                        },
-                    }
+                    StrokePhase::BuildingStroke { active }
                 }
             }
         }
     };
-    state.detected_point_count += 1;
-    let mut published = None;
-    let phase = state.phase;
-    state.phase = match phase {
-        StrokePhase::BuildingStroke {
-            active,
-            pending: Some(pending),
-        } if pending.confirming_point_index == index => {
-            let confirmed = freeze(pending, &point.confirmed_known_at);
-            state.confirmed.push(copy_confirmed_stroke(&confirmed));
-            published = Some(confirmed);
-            StrokePhase::BuildingStroke {
-                active,
-                pending: None,
-            }
-        }
-        other => other,
-    };
-    state.confirmed_point_count += 1;
-    {}
+    state.processed_point_count += 1;
     (state, published)
 }

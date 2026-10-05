@@ -1,22 +1,24 @@
+mod common;
+
+use chrono::{DateTime, TimeDelta, Utc};
 // Migrated existing behavioral tests; expected observations captured from the original oracle.
 use chan_l0::f1::morphology::{
     MorphologyState, advance_morphology, fold_morphology, new_morphology_state,
 };
 use chan_l0::f1::stroke::{ConfirmedStroke, StrokePhase};
 use chan_l0::input::{BarStreamIdentity, MarketDirection, QualityBar};
-use chan_l0::number::{Int, Nat};
 
-fn nat(value: u64) -> Nat {
-    Nat::from_u64(value)
+fn nat(value: u64) -> DateTime<Utc> {
+    DateTime::from_timestamp(value as i64, 0).unwrap()
 }
-fn int(value: i64) -> Int {
-    Int::from_i64(value)
+fn int(value: i64) -> f64 {
+    value as f64
 }
 fn stream() -> BarStreamIdentity {
     BarStreamIdentity {
         market: "EXAMPLE".into(),
         instrument: "F1".into(),
-        timeframe: nat(1),
+        timeframe: TimeDelta::seconds(1),
     }
 }
 fn bar(slot: u64, price: i64) -> QualityBar {
@@ -27,7 +29,7 @@ fn bar(slot: u64, price: i64) -> QualityBar {
         high: int(price + 2),
         low: int(price),
         close: int(price + 2),
-        volume: nat(1),
+        volume: 1,
         turnover: None,
         known_at: nat(slot + 1),
         closed: true,
@@ -60,10 +62,10 @@ fn stroke_text(s: &ConfirmedStroke) -> String {
         s.geometry.begin_index,
         s.geometry.formation_end_index,
         s.geometry.end_index,
-        s.formed_known_at.decimal(),
-        s.current_known_at.decimal(),
+        s.formed_known_at.to_rfc3339(),
+        s.current_known_at.to_rfc3339(),
         s.confirmed_by_point_index,
-        s.confirmed_known_at.decimal()
+        s.confirmed_known_at.to_rfc3339()
     )
 }
 fn render(name: &str, step: usize, state: &MorphologyState) -> String {
@@ -81,32 +83,27 @@ fn render(name: &str, step: usize, state: &MorphologyState) -> String {
         StrokePhase::SeekingFirstStroke { anchor_point_index } => {
             text.push_str(&format!("Q{anchor_point_index}"))
         }
-        StrokePhase::BuildingStroke { active, pending } => {
+        StrokePhase::BuildingStroke { active } => {
             text.push_str(&format!(
                 "B{},{},{},{},{}",
                 active.geometry.begin_index,
                 active.geometry.formation_end_index,
                 active.geometry.end_index,
-                active.formed_known_at.decimal(),
-                active.current_known_at.decimal()
+                active.formed_known_at.to_rfc3339(),
+                active.current_known_at.to_rfc3339()
             ));
-            match pending {
-                None => text.push_str(",N"),
-                Some(value) => text.push_str(&format!(",P{}", value.confirming_point_index)),
-            }
+            // 反向笔与确认在同一事务完成，旧格式中的 pending 恒为空。
+            text.push_str(",N");
         }
     }
     text.push_str(&format!(
         "|D{}|C{}",
-        state.stroke.detected_point_count, state.stroke.confirmed_point_count
+        state.stroke.processed_point_count, state.stroke.processed_point_count
     ));
     text
 }
 fn oracle_lines() -> Vec<String> {
-    include_str!("fixtures/f1_morphology.txt")
-        .lines()
-        .map(str::to_owned)
-        .collect()
+    common::oracle_lines(include_str!("fixtures/f1_morphology.txt"), "stroke")
 }
 fn compare_with_runner(expected: &[String], actual: &[String]) {
     assert_eq!(expected, actual, "frozen executable oracle mismatch");
@@ -144,8 +141,7 @@ fn incremental_strokes_match_frozen_oracle_and_chunking() {
             };
             let previous_points = state.f1.confirmed.len();
             let (next, delta) = advance_morphology(state, input).unwrap();
-            assert_eq!(next.stroke.detected_point_count, next.f1.confirmed.len());
-            assert_eq!(next.stroke.confirmed_point_count, next.f1.confirmed.len());
+            assert_eq!(next.stroke.processed_point_count, next.f1.confirmed.len());
             assert_eq!(
                 next.stroke
                     .confirmed
@@ -166,26 +162,22 @@ fn incremental_strokes_match_frozen_oracle_and_chunking() {
             }
             if let (Some(before), StrokePhase::BuildingStroke { active, .. }) =
                 (previous_end, &next.stroke.phase)
+                && active.geometry.end_index > before
+                && active.geometry.formation_end_index < active.geometry.end_index
             {
-                if active.geometry.end_index > before
-                    && active.geometry.formation_end_index < active.geometry.end_index
-                {
-                    replacements += 1;
-                }
+                replacements += 1;
             }
             if name == "short"
                 && next.f1.confirmed.len() > previous_points
                 && previous_anchor == Some(2)
-            {
-                if let StrokePhase::SeekingFirstStroke {
+                && let StrokePhase::SeekingFirstStroke {
                     anchor_point_index: 2,
                 } = &next.stroke.phase
-                {
-                    let previous_low = &next.f1.combined[6].low;
-                    let current_low = &next.f1.combined[11].low;
-                    if previous_low == current_low {
-                        saw_equal = true;
-                    }
+            {
+                let previous_low = &next.f1.combined[6].low;
+                let current_low = &next.f1.combined[11].low;
+                if previous_low == current_low {
+                    saw_equal = true;
                 }
             }
             for stroke in &next.stroke.confirmed {
@@ -207,12 +199,7 @@ fn incremental_strokes_match_frozen_oracle_and_chunking() {
                     next.f1.confirmed[pair[1].geometry.begin_index].point.kind
                 );
             }
-            if let StrokePhase::BuildingStroke { active, pending } = &next.stroke.phase {
-                assert!(
-                    pending.is_none(),
-                    "closed-material transaction left a pending reverse"
-                );
-                assert_eq!(active.geometry.begin_index, active.begin_point_index);
+            if let StrokePhase::BuildingStroke { active } = &next.stroke.phase {
                 assert!(active.geometry.begin_index < active.geometry.formation_end_index);
                 assert!(active.geometry.formation_end_index <= active.geometry.end_index);
                 assert!(active.geometry.end_index < next.f1.confirmed.len());

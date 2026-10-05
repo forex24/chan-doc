@@ -1,95 +1,153 @@
-//! Exact incremental F1 primary split probes and segment ledger.
+//! 增量线段识别：每个候选切分点独立推进第一、第二特征序列，并要求真实笔破坏。
 
 use crate::f1::feature::{
-    FeatureElement, PriceInterval, SegmentDirection, copy_feature, copy_interval,
-    feature_for_stroke, intervals_intersect, normalized_push, opposite, primary_target,
-    standard_second_target, stroke_direction, stroke_interval, stroke_opposes,
+    FeatureElement, PriceInterval, SegmentDirection, feature_for_stroke, intervals_intersect,
+    normalized_push, opposite, primary_target, standard_second_target, stroke_direction,
+    stroke_interval, stroke_opposes,
 };
 use crate::f1::stroke::{ConfirmedStroke, StrokeState, center_position};
 use crate::f1::{F1State, FractalKind};
-use crate::number::{Int, Nat};
-use std::cmp::Ordering;
+use chrono::{DateTime, Utc};
 
-#[derive(Debug, PartialEq, Eq)]
+/// 线段确认所依据的识别分支。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RecognitionReason {
+    /// 第一特征序列无缺口，且已获得真实笔破坏证据。
     ImmediateNoGap,
+    /// 第一特征序列有缺口，经第二特征序列分型和真实笔破坏确认。
     RepairedBySecondSequence,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 线段候选与确认的获知时间，均使用 UTC。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SegmentTimes {
-    pub occurred_at: Nat,
-    pub candidate_known_at: Nat,
-    pub confirmed_at: Nat,
+    /// 第一特征序列形成目标分型的获知时间。
+    pub candidate_known_at: DateTime<Utc>,
+    /// 全部确认条件满足的获知时间，不早于候选或前一线段。
+    pub confirmed_at: DateTime<Utc>,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 已确认线段，保存端点、全区间和特征序列证据。
+#[derive(Clone, Debug, PartialEq)]
 pub struct ConfirmedSegment {
+    /// 该线段在完成账本中的下标。
     pub ordinal: usize,
+    /// 本段首笔在确认笔账本中的下标。
     pub begin_stroke_index: usize,
+    /// 下一段首笔下标；其起点是本段终点，属于右开边界。
     pub end_stroke_index: usize,
+    /// 本段方向。
     pub direction: SegmentDirection,
+    /// 用于确认的三元素特征分型快照。
     pub elements: Vec<FeatureElement>,
+    /// 本段所有实际笔覆盖的价格区间，包含内部极值。
     pub price_interval: PriceInterval,
-    pub start_price: Int,
-    pub end_price: Int,
+    /// 本段起点价格。
+    pub start_price: f64,
+    /// 本段终点价格。
+    pub end_price: f64,
+    /// 候选与确认时间。
     pub times: SegmentTimes,
+    /// 无缺口或第二特征序列确认分支。
     pub reason: RecognitionReason,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 真实笔区间产生破坏的来源证据。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ActualBreakWitness {
+    /// 第一特征序列中心元素的源笔下标。
     pub center_source_stroke_index: usize,
+    /// 实际产生破坏的已观察笔下标。
     pub observed_stroke_index: usize,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 一个切分候选的识别阶段；所需证据放在对应枚举分支内。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProbeStage {
+    /// 第一特征序列还未构成目标分型。
     SeekingPrimary,
+    /// 无缺口分型已成形，仍待真实笔破坏。
     SeekingActualBreak {
-        candidate_known_at: Nat,
+        /// 目标分型第一次成立的获知时间。
+        candidate_known_at: DateTime<Utc>,
     },
+    /// 有缺口分型已成形，继续等待第二特征序列及真实破坏。
     SeekingSecond {
-        candidate_known_at: Nat,
+        /// 目标分型第一次成立的获知时间。
+        candidate_known_at: DateTime<Utc>,
+        /// 已出现的真实破坏证据；保留后继续等待第二序列。
         actual_break: Option<ActualBreakWitness>,
     },
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 独立切分候选，避免不同候选的包含状态相互污染。
+#[derive(Clone, Debug, PartialEq)]
 pub struct PrimarySplitProbe {
+    /// 候选切分笔下标。
     pub split_stroke_index: usize,
+    /// 该切分点的第一特征序列。
     pub primary: Vec<FeatureElement>,
+    /// 该切分点的第二特征序列。
     pub second: Vec<FeatureElement>,
+    /// 第二序列已识别目标分型的中心下标。
     pub second_target: Option<usize>,
+    /// 当前等待的条件与已收集证据。
     pub stage: ProbeStage,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 尚待确认的当前线段。
+#[derive(Clone, Debug, PartialEq)]
 pub struct SegmentPending {
+    /// 候选线段首笔下标。
     pub begin_stroke_index: usize,
+    /// 候选线段方向。
     pub direction: SegmentDirection,
+    /// 当前线段完整的第一特征序列。
     pub primary: Vec<FeatureElement>,
-    pub known_at: Nat,
+    /// 已消费确认笔的最大获知时间。
+    pub known_at: DateTime<Utc>,
+    /// 按创建顺序排列的独立切分候选。
     pub probes: Vec<PrimarySplitProbe>,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 线段账本与待处理笔游标。
+#[derive(Clone, Debug, PartialEq)]
 pub struct SegmentState {
+    /// 已确认线段前缀。
     pub completed: Vec<ConfirmedSegment>,
+    /// 当前未确认线段，无候选时为 None。
     pub pending: Option<SegmentPending>,
+    /// 下一次需要处理的确认笔下标；确认切分后可回退以回放新段。
     pub next_stroke_index: usize,
 }
-#[derive(Debug, PartialEq, Eq)]
+/// 线段推进失败原因。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SegmentError {
+    /// 源笔、分型下标或端点价格不合法。
     InvalidStrokeSource,
+    /// 线段游标、候选窗口或端点顺序不合法。
     InvalidSegmentState,
 }
+/// 切分候选满足全部条件后的识别结果。
+#[derive(Clone, Debug, PartialEq)]
 pub struct Recognition {
+    /// 获确认的切分笔下标。
     pub split_stroke_index: usize,
+    /// 第一序列目标分型的三元素快照。
     pub window: Vec<FeatureElement>,
-    pub candidate_known_at: Nat,
-    pub confirmed_known_at: Nat,
+    /// 第一序列目标分型获知时间。
+    pub candidate_known_at: DateTime<Utc>,
+    /// 全部识别条件满足的获知时间。
+    pub confirmed_known_at: DateTime<Utc>,
+    /// 此次确认走过的识别分支。
     pub reason: RecognitionReason,
+    /// 必须具备的真实笔破坏证据。
     pub actual_break: ActualBreakWitness,
 }
+/// 单根确认笔对一个切分候选的推进结果。
+#[derive(Clone, Debug, PartialEq)]
 pub enum ProbeStep {
+    /// 候选已失效。
     Discarded,
+    /// 仍需后续材料的候选。
     Waiting(PrimarySplitProbe),
+    /// 所有识别条件已满足。
     Recognized(Recognition),
 }
+/// 建立空线段账本与从零开始的确认笔游标。
 pub fn new_segment_state() -> SegmentState {
     SegmentState {
         completed: Vec::new(),
@@ -97,54 +155,23 @@ pub fn new_segment_state() -> SegmentState {
         next_stroke_index: 0,
     }
 }
-fn less(a: &Int, b: &Int) -> bool {
-    match a.cmp_exact(b) {
-        Ordering::Less => true,
-        _ => false,
-    }
-}
-fn greater(a: &Int, b: &Int) -> bool {
-    match a.cmp_exact(b) {
-        Ordering::Greater => true,
-        _ => false,
-    }
-}
-fn le(a: &Int, b: &Int) -> bool {
-    match a.cmp_exact(b) {
-        Ordering::Greater => false,
-        _ => true,
-    }
-}
-fn max_int(a: &Int, b: &Int) -> Int {
-    if less(a, b) { b.clone() } else { a.clone() }
-}
-fn min_int(a: &Int, b: &Int) -> Int {
-    if greater(a, b) { b.clone() } else { a.clone() }
-}
-fn max_nat(a: &Nat, b: &Nat) -> Nat {
-    match a.cmp_exact(b) {
-        Ordering::Less => b.clone(),
-        _ => a.clone(),
-    }
-}
-fn stroke_begin_price(f1: &F1State, stroke: &ConfirmedStroke) -> Option<Int> {
+/// 从源笔起点分型读取真实极值价格，下标无效时返回 None。
+fn stroke_begin_price(f1: &F1State, stroke: &ConfirmedStroke) -> Option<f64> {
     let index = stroke.geometry.begin_index;
     if index >= f1.confirmed.len() {
         return None;
     }
     let point = &f1.confirmed[index].point;
-    let Some(center) = center_position(&f1.combined, point) else {
-        return None;
-    };
+    let center = center_position(&f1.combined, point)?;
     Some(match point.kind {
-        FractalKind::Top => f1.combined[center].high.clone(),
-        FractalKind::Bottom => f1.combined[center].low.clone(),
+        FractalKind::Top => f1.combined[center].high,
+        FractalKind::Bottom => f1.combined[center].low,
     })
 }
-#[doc = " Uses actual stroke intervals and the four conjuncts of PrimaryHasActualBreakAtLedger."]
+/// 同时检查源下标顺序、前三笔公共重叠、中心破坏和两项方向消歧条件。
 pub fn actual_break(
     f1: &F1State,
-    strokes: &Vec<ConfirmedStroke>,
+    strokes: &[ConfirmedStroke],
     split: usize,
     center_source: usize,
     index: usize,
@@ -177,19 +204,20 @@ pub fn actual_break(
     let Some(previous) = stroke_interval(f1, &strokes[split - 2]) else {
         return false;
     };
-    let overlap_low = max_int(&max_int(&first.low, &second.low), &third.low);
-    let overlap_high = min_int(&min_int(&first.high, &second.high), &third.high);
-    if !le(&overlap_low, &overlap_high) {
+    let overlap_low = first.low.max(second.low).max(third.low);
+    let overlap_high = first.high.min(second.high).min(third.high);
+    if !overlap_low.is_finite() || !overlap_high.is_finite() || overlap_low > overlap_high {
         return false;
     }
     let center_break = match direction {
-        SegmentDirection::Up => less(&challenge.low, &center.low),
-        SegmentDirection::Down => greater(&challenge.high, &center.high),
+        SegmentDirection::Up => challenge.low < center.low,
+        SegmentDirection::Down => challenge.high > center.high,
     };
     center_break
         && first_stroke_directional_resolution(&previous, &first, &challenge, direction)
         && initial_three_direction_resolved(&first, &third, &challenge, direction)
 }
+/// 若首笔已突破前一对应笔，则后续挑战还必须突破首笔本身。
 pub fn first_stroke_directional_resolution(
     previous: &PriceInterval,
     first: &PriceInterval,
@@ -197,15 +225,16 @@ pub fn first_stroke_directional_resolution(
     direction: &SegmentDirection,
 ) -> bool {
     let prior_break = match direction {
-        SegmentDirection::Up => less(&first.low, &previous.low),
-        SegmentDirection::Down => greater(&first.high, &previous.high),
+        SegmentDirection::Up => first.low < previous.low,
+        SegmentDirection::Down => first.high > previous.high,
     };
     let first_break = match direction {
-        SegmentDirection::Up => less(&challenge.low, &first.low),
-        SegmentDirection::Down => greater(&challenge.high, &first.high),
+        SegmentDirection::Up => challenge.low < first.low,
+        SegmentDirection::Down => challenge.high > first.high,
     };
     !prior_break || first_break
 }
+/// 前三笔方向须由第三笔或后续挑战对首笔的突破得到确认。
 pub fn initial_three_direction_resolved(
     first: &PriceInterval,
     third: &PriceInterval,
@@ -213,16 +242,17 @@ pub fn initial_three_direction_resolved(
     direction: &SegmentDirection,
 ) -> bool {
     let first_break = match direction {
-        SegmentDirection::Up => less(&challenge.low, &first.low),
-        SegmentDirection::Down => greater(&challenge.high, &first.high),
+        SegmentDirection::Up => challenge.low < first.low,
+        SegmentDirection::Down => challenge.high > first.high,
     };
     let third_break = match direction {
-        SegmentDirection::Up => less(&third.low, &first.low),
-        SegmentDirection::Down => greater(&third.high, &first.high),
+        SegmentDirection::Up => third.low < first.low,
+        SegmentDirection::Down => third.high > first.high,
     };
     third_break || first_break
 }
-fn primary_tail_target(primary: &Vec<FeatureElement>, direction: &SegmentDirection) -> bool {
+/// 检查第一特征序列末尾三个元素是否满足目标分型。
+fn primary_tail_target(primary: &[FeatureElement], direction: &SegmentDirection) -> bool {
     if primary.len() < 3 {
         return false;
     }
@@ -234,7 +264,7 @@ fn primary_tail_target(primary: &Vec<FeatureElement>, direction: &SegmentDirecti
         direction,
     )
 }
-#[doc = " The right equal extreme is checked before an inclusive interval can absorb it."]
+/// 先检查右侧同价极值能否构成目标分型，再做包含合并，避免证据被提前吸收。
 fn advance_split_primary(
     primary: Vec<FeatureElement>,
     feature: &FeatureElement,
@@ -242,19 +272,17 @@ fn advance_split_primary(
     split: usize,
 ) -> Vec<FeatureElement> {
     if primary.len() == 2 {
-        let mut appended = Vec::new();
-        appended.push(copy_feature(&primary[0]));
-        appended.push(copy_feature(&primary[1]));
-        appended.push(copy_feature(feature));
+        let appended = vec![primary[0].clone(), primary[1].clone(), feature.clone()];
         if primary_tail_target(&appended, direction) {
             return appended;
         }
     }
-    normalized_push(primary, copy_feature(feature), direction, split)
+    normalized_push(primary, feature.clone(), direction, split)
 }
+/// 更新第二序列目标；活动尾被包含替换时重新校验尚未冻结的尾部分型。
 fn second_target_after(
     previous_count: usize,
-    second: &Vec<FeatureElement>,
+    second: &[FeatureElement],
     old: Option<usize>,
     direction: &SegmentDirection,
 ) -> Option<usize> {
@@ -292,35 +320,32 @@ fn second_target_after(
         }
     }
 }
+/// 冻结候选窗口和真实破坏证据，形成可交给线段构造器的结果。
 fn recognition(
     split: usize,
-    primary: &Vec<FeatureElement>,
-    candidate: &Nat,
-    known: &Nat,
+    primary: &[FeatureElement],
+    candidate: &DateTime<Utc>,
+    known: &DateTime<Utc>,
     reason: RecognitionReason,
     witness: ActualBreakWitness,
 ) -> Recognition {
-    let mut window = Vec::new();
-    let mut index = 0usize;
-    while index < primary.len() {
-        window.push(copy_feature(&primary[index]));
-        index += 1;
-    }
+    let window = primary.to_vec();
     Recognition {
         split_stroke_index: split,
         window,
-        candidate_known_at: candidate.clone(),
-        confirmed_known_at: known.clone(),
+        candidate_known_at: *candidate,
+        confirmed_known_at: *known,
         reason,
         actual_break: witness,
     }
 }
+/// 先推进独立第二序列，再按阶段检查失效、真实破坏和目标分型；不混用其他切分点的材料。
 pub fn advance_probe(
     mut probe: PrimarySplitProbe,
     feature: &FeatureElement,
     opposes: bool,
     direction: &SegmentDirection,
-    known_at: &Nat,
+    known_at: &DateTime<Utc>,
     has_actual_break: bool,
 ) -> ProbeStep {
     if probe.primary.len() < 2 {
@@ -330,7 +355,7 @@ pub fn advance_probe(
     if !opposes {
         probe.second = normalized_push(
             probe.second,
-            copy_feature(feature),
+            feature.clone(),
             &opposite(direction),
             probe.split_stroke_index,
         );
@@ -343,17 +368,14 @@ pub fn advance_probe(
     }
     let center = &probe.primary[1];
     let invalidated = match direction {
-        SegmentDirection::Up => greater(&feature.interval.high, &center.interval.high),
-        SegmentDirection::Down => less(&feature.interval.low, &center.interval.low),
+        SegmentDirection::Up => feature.interval.high > center.interval.high,
+        SegmentDirection::Down => feature.interval.low < center.interval.low,
     };
     let evidence = match &probe.stage {
         ProbeStage::SeekingSecond {
             actual_break: Some(value),
             ..
-        } => Some(ActualBreakWitness {
-            center_source_stroke_index: value.center_source_stroke_index,
-            observed_stroke_index: value.observed_stroke_index,
-        }),
+        } => Some(*value),
         _ if has_actual_break => Some(ActualBreakWitness {
             center_source_stroke_index: center.source_stroke_index,
             observed_stroke_index: feature.source_stroke_index,
@@ -365,17 +387,17 @@ pub fn advance_probe(
         ProbeStage::SeekingSecond {
             candidate_known_at, ..
         } => {
-            if probe.second_target.is_some() {
-                if let Some(witness) = evidence {
-                    return ProbeStep::Recognized(recognition(
-                        probe.split_stroke_index,
-                        &probe.primary,
-                        &candidate_known_at,
-                        known_at,
-                        RecognitionReason::RepairedBySecondSequence,
-                        witness,
-                    ));
-                }
+            if probe.second_target.is_some()
+                && let Some(witness) = evidence
+            {
+                return ProbeStep::Recognized(recognition(
+                    probe.split_stroke_index,
+                    &probe.primary,
+                    &candidate_known_at,
+                    known_at,
+                    RecognitionReason::RepairedBySecondSequence,
+                    witness,
+                ));
             }
             if invalidated {
                 return ProbeStep::Discarded;
@@ -432,23 +454,23 @@ pub fn advance_probe(
                         ));
                     }
                     probe.stage = ProbeStage::SeekingActualBreak {
-                        candidate_known_at: known_at.clone(),
+                        candidate_known_at: *known_at,
                     };
                 } else {
-                    if probe.second_target.is_some() {
-                        if let Some(witness) = evidence {
-                            return ProbeStep::Recognized(recognition(
-                                probe.split_stroke_index,
-                                &probe.primary,
-                                known_at,
-                                known_at,
-                                RecognitionReason::RepairedBySecondSequence,
-                                witness,
-                            ));
-                        }
+                    if probe.second_target.is_some()
+                        && let Some(witness) = evidence
+                    {
+                        return ProbeStep::Recognized(recognition(
+                            probe.split_stroke_index,
+                            &probe.primary,
+                            known_at,
+                            known_at,
+                            RecognitionReason::RepairedBySecondSequence,
+                            witness,
+                        ));
                     }
                     probe.stage = ProbeStage::SeekingSecond {
-                        candidate_known_at: known_at.clone(),
+                        candidate_known_at: *known_at,
                         actual_break: evidence,
                     };
                 }
@@ -459,9 +481,10 @@ pub fn advance_probe(
         }
     }
 }
+/// 合并 [first, end) 的真实笔区间，并纳入 end 笔起点；end 笔其余部分属于下一段。
 fn span_range(
     f1: &F1State,
-    strokes: &Vec<ConfirmedStroke>,
+    strokes: &[ConfirmedStroke],
     first: usize,
     end: usize,
 ) -> Option<PriceInterval> {
@@ -471,7 +494,7 @@ fn span_range(
     if first == end {
         let price = stroke_begin_price(f1, &strokes[end])?;
         return Some(PriceInterval {
-            low: price.clone(),
+            low: price,
             high: price,
         });
     }
@@ -480,21 +503,22 @@ fn span_range(
     while index < end {
         let next = stroke_interval(f1, &strokes[index])?;
         range = PriceInterval {
-            low: min_int(&range.low, &next.low),
-            high: max_int(&range.high, &next.high),
+            low: range.low.min(next.low),
+            high: range.high.max(next.high),
         };
         index += 1;
     }
     let tail_price = stroke_begin_price(f1, &strokes[end])?;
     Some(PriceInterval {
-        low: min_int(&range.low, &tail_price),
-        high: max_int(&range.high, &tail_price),
+        low: range.low.min(tail_price),
+        high: range.high.max(tail_price),
     })
 }
+/// 校验端点方向并构造全价格区间，确认时间取候选、识别和前一段确认时间的最大值。
 fn build_segment(
     f1: &F1State,
-    strokes: &Vec<ConfirmedStroke>,
-    completed: &Vec<ConfirmedSegment>,
+    strokes: &[ConfirmedStroke],
+    completed: &[ConfirmedSegment],
     pending: &SegmentPending,
     recognized: Recognition,
 ) -> Option<ConfirmedSegment> {
@@ -507,8 +531,8 @@ fn build_segment(
     let start_price = stroke_begin_price(f1, &strokes[pending.begin_stroke_index])?;
     let end_price = stroke_begin_price(f1, &strokes[recognized.split_stroke_index])?;
     let advancing = match pending.direction {
-        SegmentDirection::Up => less(&start_price, &end_price),
-        SegmentDirection::Down => greater(&start_price, &end_price),
+        SegmentDirection::Up => start_price < end_price,
+        SegmentDirection::Down => start_price > end_price,
     };
     if !advancing {
         return None;
@@ -520,158 +544,38 @@ fn build_segment(
         recognized.split_stroke_index,
     )?;
     let price_interval = PriceInterval {
-        low: min_int(&min_int(&span.low, &start_price), &end_price),
-        high: max_int(&max_int(&span.high, &start_price), &end_price),
+        low: span.low.min(start_price).min(end_price),
+        high: span.high.max(start_price).max(end_price),
     };
     let previous_known = match completed.last() {
-        Some(value) => value.times.confirmed_at.clone(),
-        None => Nat::zero(),
+        Some(value) => value.times.confirmed_at,
+        None => DateTime::<Utc>::MIN_UTC,
     };
-    let confirmed_at = max_nat(
-        &max_nat(
-            &recognized.candidate_known_at,
-            &recognized.confirmed_known_at,
-        ),
-        &previous_known,
-    );
+    let confirmed_at = recognized
+        .candidate_known_at
+        .max(recognized.confirmed_known_at)
+        .max(previous_known);
     Some(ConfirmedSegment {
         ordinal: completed.len(),
         begin_stroke_index: pending.begin_stroke_index,
         end_stroke_index: recognized.split_stroke_index,
-        direction: match pending.direction {
-            SegmentDirection::Up => SegmentDirection::Up,
-            SegmentDirection::Down => SegmentDirection::Down,
-        },
+        direction: pending.direction,
         elements: recognized.window,
         price_interval,
         start_price,
         end_price,
         times: SegmentTimes {
-            occurred_at: recognized.candidate_known_at.clone(),
             candidate_known_at: recognized.candidate_known_at,
             confirmed_at,
         },
         reason: recognized.reason,
     })
 }
-fn copy_probe(probe: &PrimarySplitProbe) -> PrimarySplitProbe {
-    let mut primary = Vec::new();
-    let mut index = 0usize;
-    while index < probe.primary.len() {
-        primary.push(copy_feature(&probe.primary[index]));
-        index += 1;
-    }
-    let mut second = Vec::new();
-    let mut index = 0usize;
-    while index < probe.second.len() {
-        second.push(copy_feature(&probe.second[index]));
-        index += 1;
-    }
-    let stage = match &probe.stage {
-        ProbeStage::SeekingPrimary => ProbeStage::SeekingPrimary,
-        ProbeStage::SeekingActualBreak { candidate_known_at } => ProbeStage::SeekingActualBreak {
-            candidate_known_at: candidate_known_at.clone(),
-        },
-        ProbeStage::SeekingSecond {
-            candidate_known_at,
-            actual_break,
-        } => ProbeStage::SeekingSecond {
-            candidate_known_at: candidate_known_at.clone(),
-            actual_break: match actual_break {
-                Some(value) => Some(ActualBreakWitness {
-                    center_source_stroke_index: value.center_source_stroke_index,
-                    observed_stroke_index: value.observed_stroke_index,
-                }),
-                None => None,
-            },
-        },
-    };
-    PrimarySplitProbe {
-        split_stroke_index: probe.split_stroke_index,
-        primary,
-        second,
-        second_target: probe.second_target,
-        stage,
-    }
-}
-pub fn copy_segment(value: &ConfirmedSegment) -> ConfirmedSegment {
-    let mut elements = Vec::new();
-    let mut index = 0usize;
-    while index < value.elements.len() {
-        elements.push(copy_feature(&value.elements[index]));
-        index += 1;
-    }
-    ConfirmedSegment {
-        ordinal: value.ordinal,
-        begin_stroke_index: value.begin_stroke_index,
-        end_stroke_index: value.end_stroke_index,
-        direction: match value.direction {
-            SegmentDirection::Up => SegmentDirection::Up,
-            SegmentDirection::Down => SegmentDirection::Down,
-        },
-        elements,
-        price_interval: copy_interval(&value.price_interval),
-        start_price: value.start_price.clone(),
-        end_price: value.end_price.clone(),
-        times: SegmentTimes {
-            occurred_at: value.times.occurred_at.clone(),
-            candidate_known_at: value.times.candidate_known_at.clone(),
-            confirmed_at: value.times.confirmed_at.clone(),
-        },
-        reason: match value.reason {
-            RecognitionReason::ImmediateNoGap => RecognitionReason::ImmediateNoGap,
-            RecognitionReason::RepairedBySecondSequence => {
-                RecognitionReason::RepairedBySecondSequence
-            }
-        },
-    }
-}
-#[doc = " Preserve the pre-advance state for fail-closed pipeline errors."]
-pub fn copy_segment_state(value: &SegmentState) -> SegmentState {
-    let mut completed: Vec<ConfirmedSegment> = Vec::new();
-    let mut index = 0usize;
-    while index < value.completed.len() {
-        completed.push(copy_segment(&value.completed[index]));
-        index += 1;
-    }
-    let pending = match &value.pending {
-        None => None,
-        Some(old) => {
-            let mut primary = Vec::new();
-            let mut index = 0usize;
-            while index < old.primary.len() {
-                primary.push(copy_feature(&old.primary[index]));
-                index += 1;
-            }
-            let mut probes = Vec::new();
-            let mut index = 0usize;
-            while index < old.probes.len() {
-                probes.push(copy_probe(&old.probes[index]));
-                index += 1;
-            }
-            Some(SegmentPending {
-                begin_stroke_index: old.begin_stroke_index,
-                direction: match old.direction {
-                    SegmentDirection::Up => SegmentDirection::Up,
-                    SegmentDirection::Down => SegmentDirection::Down,
-                },
-                primary,
-                known_at: old.known_at.clone(),
-                probes,
-            })
-        }
-    };
-    SegmentState {
-        completed,
-        pending,
-        next_stroke_index: value.next_stroke_index,
-    }
-}
-#[doc = " One confirmed stroke advances every independent split probe before the active primary."]
+/// 先推进所有独立切分候选，再更新活动第一序列；按候选顺序选择首个有效且有净位移的切分。
 fn step_segment(
     mut state: SegmentState,
     f1: &F1State,
-    strokes: &Vec<ConfirmedStroke>,
+    strokes: &[ConfirmedStroke],
 ) -> Result<(SegmentState, Option<ConfirmedSegment>), (SegmentState, SegmentError)> {
     let index = state.next_stroke_index;
     if index >= strokes.len() {
@@ -685,7 +589,7 @@ fn step_segment(
             begin_stroke_index: index,
             direction,
             primary: Vec::new(),
-            known_at: strokes[index].confirmed_known_at.clone(),
+            known_at: strokes[index].confirmed_known_at,
             probes: Vec::new(),
         });
         state.next_stroke_index += 1;
@@ -705,12 +609,12 @@ fn step_segment(
         return Err((state, SegmentError::InvalidStrokeSource));
     };
     let opposes = stroke_opposes(&pending.direction, &direction);
-    let known_at = max_nat(&pending.known_at, &strokes[index].confirmed_known_at);
+    let known_at = pending.known_at.max(strokes[index].confirmed_known_at);
     let mut next_probes = Vec::new();
     let mut selected = None;
     let mut probe_index = 0usize;
     while probe_index < pending.probes.len() {
-        let probe = copy_probe(&pending.probes[probe_index]);
+        let probe = pending.probes[probe_index].clone();
         if probe.primary.len() < 2 {
             state.pending = Some(pending);
             return Err((state, SegmentError::InvalidSegmentState));
@@ -743,12 +647,12 @@ fn step_segment(
                     let start_price = stroke_begin_price(f1, &strokes[pending.begin_stroke_index]);
                     if let Some(start_price) = start_price {
                         let endpoint = match pending.direction {
-                            SegmentDirection::Up => &found.window[1].interval.high,
-                            SegmentDirection::Down => &found.window[1].interval.low,
+                            SegmentDirection::Up => found.window[1].interval.high,
+                            SegmentDirection::Down => found.window[1].interval.low,
                         };
                         let advances = match pending.direction {
-                            SegmentDirection::Up => less(&start_price, endpoint),
-                            SegmentDirection::Down => greater(&start_price, endpoint),
+                            SegmentDirection::Up => start_price < endpoint,
+                            SegmentDirection::Down => start_price > endpoint,
                         };
                         if advances {
                             selected = Some(found);
@@ -770,21 +674,19 @@ fn step_segment(
             state.pending = Some(pending);
             return Err((state, SegmentError::InvalidSegmentState));
         }
-        if let Some(last) = state.completed.last() {
-            if end_index <= last.end_stroke_index {
-                state.pending = Some(pending);
-                return Err((state, SegmentError::InvalidSegmentState));
-            }
+        if let Some(last) = state.completed.last()
+            && end_index <= last.end_stroke_index
+        {
+            state.pending = Some(pending);
+            return Err((state, SegmentError::InvalidSegmentState));
         }
-        state.completed.push(copy_segment(&segment));
+        state.completed.push(segment.clone());
         state.pending = None;
         state.next_stroke_index = end_index;
         return Ok((state, Some(segment)));
     }
     if opposes && !pending.primary.is_empty() {
-        let mut primary = Vec::new();
-        primary.push(copy_feature(pending.primary.last().unwrap()));
-        primary.push(copy_feature(&feature));
+        let primary = vec![pending.primary.last().unwrap().clone(), feature.clone()];
         next_probes.push(PrimarySplitProbe {
             split_stroke_index: index,
             primary,
@@ -807,7 +709,7 @@ fn step_segment(
     state.next_stroke_index += 1;
     Ok((state, None))
 }
-#[doc = " A recognized endpoint may precede the current stroke, so replay begins there."]
+/// 消费尚未处理的确认笔；切分端点可能早于当前笔，因此新段从切分笔开始回放。
 pub fn advance_segments(
     mut state: SegmentState,
     f1: &F1State,
